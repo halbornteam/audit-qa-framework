@@ -1,0 +1,160 @@
+{
+  "protocol": "Casper Security Tests",
+  "tags": [
+    {
+      "tag": "Contract Package Versioning",
+      "test_cases": [
+        {
+          "id": "CSPR-CPV-01",
+          "test_case": "Access URef Preservation",
+          "detailed_procedure": "Verify that the contract stores access uref under the installing account named keys when installing an upgradeable contract",
+          "pass_fail_criteria": "The contract sets the access uref parameter as Some(uref) when calling contract creation functions such as storage::new_contract"
+        },
+        {
+          "id": "CSPR-CPV-02",
+          "test_case": "Authorized Upgrade",
+          "detailed_procedure": "Verify that the contract can only be upgraded by authorized accounts",
+          "pass_fail_criteria": "The contract can only be upgraded by authorized accounts"
+        },
+        {
+          "id": "CSPR-CPV-03",
+          "test_case": "Disabling Old Versions",
+          "detailed_procedure": "Verify that the contract disables old versions after a new version is installed if that's the intended behavior",
+          "pass_fail_criteria": "The contract disables old versions if needed after a new version is installed"
+        },
+        {
+          "id": "CSPR-CPV-04",
+          "test_case": "Events initialization",
+          "detailed_procedure": "Verify that the CES events are initialized within the init function",
+          "pass_fail_criteria": "The CES events are initialized inside the init function"
+        }
+      ]
+    },
+    {
+      "tag": "Named Keys & URef Permissions",
+      "test_cases": [
+        {
+          "id": "CSPR-NKUP-01",
+          "test_case": "Passing URefs with appropriate access rights",
+          "detailed_procedure": "When passing a URef to another entity in any way, ensure that the URef is passed with the appropriate access rights",
+          "pass_fail_criteria": "The URef is passed with the appropriate access rights"
+        },
+        {
+          "id": "CSPR-NKUP-02",
+          "test_case": "URef leak prevention",
+          "detailed_procedure": "Test that URefs are not accidentally returned or exposed in event data",
+          "pass_fail_criteria": "URefs are not accidentally returned or exposed in event data"
+        }
+      ]
+    },
+    {
+      "tag": "Access Control",
+      "test_cases": [
+        {
+          "id": "CSPR-AC-01",
+          "test_case": "Reliance on immediate caller",
+          "detailed_procedure": "Verify that the immediate caller is used rather than the initiator for authorization checks",
+          "pass_fail_criteria": "The immediate caller is used for authorization checks"
+        },
+        {
+          "id": "CSPR-AC-02",
+          "test_case": "Reliance on contract package hash",
+          "detailed_procedure": "Verify that the contract package hash is used rather than the contract hash for contract access control, that's why it should be stored under the contract named keys",
+          "pass_fail_criteria": "The contract package hash is stored under the contract named keys and is used for contract access control"
+        }
+      ]
+    },
+    {
+      "tag": "Entry Points Configuration",
+      "test_cases": [
+        {
+          "id": "CSPR-EPC-01",
+          "test_case": "Availability preservation",
+          "detailed_procedure": "Ensure that all the entry points signatures are included in the contract on installation; Ensure that every entry point implementation is decorated with the no_mangle macro",
+          "pass_fail_criteria": "An excluded entry point signature will cause the matching entry point to be not recognized by the contract; A mangled entry point name will result in the contract not recognizing the expected entry point"
+        },
+        {
+          "id": "CSPR-EPC-02",
+          "test_case": "Mismatch between signature and implementation",
+          "detailed_procedure": "Verify that the entry points signatures match with their corresponding implementation (argument names, types and return types)",
+          "pass_fail_criteria": "The entry points signatures match with their corresponding implementation"
+        },
+        {
+          "id": "CSPR-EPC-03",
+          "test_case": "Execution fee coverage",
+          "detailed_procedure": "Ensure that the execution fee is enforced to be paid by the appropiate entity (contract or caller) for all the entry points",
+          "pass_fail_criteria": "The execution fee is covered by the appropriate entity"
+        },
+        {
+          "id": "CSPR-EPC-04",
+          "test_case": "Execution context handling",
+          "detailed_procedure": "Ensure that the adequate execution context is selected for all the entry points (caller or contract context), depending on the logic of the function",
+          "pass_fail_criteria": "If the logic involves the contract state, then the contract context should be selected, otherwise interacting with the contract named keys would result in failure; If the logic is intended to be similar to a session code, then the caller context should be selected"
+        }
+      ]
+    },
+    {
+      "tag": "CSPR Receiving Contract",
+      "test_cases": [
+        {
+          "id": "CSPR-CRC-01",
+          "test_case": "Purse attachement on contract installation (prior to Casper 2.0)",
+          "detailed_procedure": "Verify that a purse is created for the contract on installation and stored under the contract's named keys; Starting from Casper 2.0, contracts work similarly to accounts and are both called entities, they have a main purse by default",
+          "pass_fail_criteria": "A contract with no purse is not able to receive CSPR"
+        },
+        {
+          "id": "CSPR-CRC-02",
+          "test_case": "Source purse selection",
+          "detailed_procedure": "Verify that the source purse is provided as an argument instead of relying on the caller's main purse for deposits, as this will result in a revert with forged reference error",
+          "pass_fail_criteria": "The source purse is provided as an argument and was created within the calling context (via session code)"
+        }
+      ]
+    },
+    {
+      "tag": "Named Keys Management",
+      "test_cases": [
+        {
+          "id": "CSPR-NKM-01",
+          "test_case": "Encapsulation under URef",
+          "detailed_procedure": "Verify that named keys values are stored within a URef (storage::new_uref(value))",
+          "pass_fail_criteria": "Values are encapsulated under URefs"
+        },
+        {
+          "id": "CSPR-NKM-02",
+          "test_case": "Dangerous expansion of named keys",
+          "detailed_procedure": "Ensure named keys do not store large data structures (e.g. maps), as this can lead to performance issues or denial-of-service (DoS) vulnerabilities",
+          "pass_fail_criteria": "Named keys do not store large data structures; Dictionaries are used for storing large data types"
+        },
+        {
+          "id": "CSPR-NKM-03",
+          "test_case": "Inconsistent read/write",
+          "detailed_procedure": "Ensure that named keys are consistently read and written using the same data type as originally defined, otherwise it will result in a revert",
+          "pass_fail_criteria": "A named key is being read with the expectation of a different data type; A named key is being written with a different data type than originally defined"
+        },
+        {
+          "id": "CSPR-NKM-04",
+          "test_case": "Dictionaries creation context",
+          "detailed_procedure": "Verify that dictionaries are created within the contract entity context, not the caller context (init function rather than call function)",
+          "pass_fail_criteria": "Dictionaries are created within the contract entity context"
+        }
+      ]
+    },
+    {
+      "tag": "Cross-Contract Controls",
+      "test_cases": [
+        {
+          "id": "CSPR-CCC-01",
+          "test_case": "DoS via contract calls",
+          "detailed_procedure": "Verify that the called entry point name is correct and the required arguments are provided, otherwise it will result in a revert",
+          "pass_fail_criteria": "The called entry point name is correct and the required arguments are provided"
+        },
+        {
+          "id": "CSPR-CCC-02",
+          "test_case": "Reentrancy safeguards",
+          "detailed_procedure": "Verify that protective measures such as the CEI (Check, Effect, Interaction) pattern, or the reentrancy guard are used to prevent reentrancy attacks",
+          "pass_fail_criteria": "The CEI pattern or reentrancy guard is used to prevent reentrancy attacks"
+        }
+      ]
+    }
+  ]
+} 
