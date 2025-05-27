@@ -1,0 +1,272 @@
+{
+  "protocol": "Staking / Locking Systems Security Tests",
+  "tags": [
+    {
+      "tag": "Fixed Lock Duration",
+      "test_cases": [
+        {
+          "id": "SLS-FLD-01",
+          "test_case": "Fixed lock duration enforcement",
+          "detailed_procedure": "Verify that the smart contract enforces a fixed lock duration from the moment tokens are locked",
+          "pass_fail_criteria": "Lock duration is immutable post-initiation"
+        },
+        {
+          "id": "SLS-FLD-02",
+          "test_case": "Timestamp handling",
+          "detailed_procedure": "Verify that block.timestamp or other time-based checks are used correctly and that arithmetic operations involving time do not introduce bugs (e.g., overflow or truncation)",
+          "pass_fail_criteria": "No arithmetic or time manipulation issues are present"
+        },
+        {
+          "id": "SLS-FLD-03",
+          "test_case": "Early unlock simulation",
+          "detailed_procedure": "Lock tokens and attempt early withdrawal before the lock duration ends",
+          "pass_fail_criteria": "Tokens cannot be withdrawn or accessed before the exact unlock time"
+        }
+      ]
+    },
+    {
+      "tag": "Flexible Unstake",
+      "test_cases": [
+        {
+          "id": "SLS-FU-01",
+          "test_case": "Unstake logic correctness",
+          "detailed_procedure": "Identify the function(s) that allow users to unstake at any time",
+          "pass_fail_criteria": "Users can unstake their tokens at any time if flexible unstake is enabled"
+        },
+        {
+          "id": "SLS-FU-02",
+          "test_case": "Penaly enforcement",
+          "detailed_procedure": "Check whether early/flexible unstaking applies a fee, slashes rewards, or has some impact on pending benefits; Validate that any such mechanics are transparent, fairly applied, and accurately calculated",
+          "pass_fail_criteria": "The contract correctly enforces penalties or reward adjustments, if applicable"
+        },
+        {
+          "id": "SLS-FU-03",
+          "test_case": "Permission scope",
+          "detailed_procedure": "Confirm that only the original staker can unstake their tokens; Attempt unstaking from unauthorized addresses",
+          "pass_fail_criteria": "No unauthorized unstaking is possible"
+        },
+        {
+          "id": "SLS-FU-04",
+          "test_case": "Unstake simulation",
+          "detailed_procedure": "Unstake immediately after staking; Unstake after partial staking duration (if rewards accrue over time); Unstake the full amount and partial amounts in multiple calls",
+          "pass_fail_criteria": "All scenarios work properly"
+        },
+        {
+          "id": "SLS-FU-05",
+          "test_case": "State updates post-unstake",
+          "detailed_procedure": "Confirm that: The user's stake amount is correctly reduced; Rewards (if any) are updated or forfeited per the logic; total pool stake is updated correctly",
+          "pass_fail_criteria": "All balance and state variables are updated consistently and accurately"
+        }
+      ]
+    },
+    {
+      "tag": "Early Withdrawal Penalty",
+      "test_cases": [
+        {
+          "id": "SLS-EWP-01",
+          "test_case": "Penalty calculation",
+          "detailed_procedure": "Review how the penalty is calculated. Is it a fixed amount, a percentage of the staked amount, or based on time remaining? Ensure that the formula is clear, consistent, and immune to rounding/precision errors",
+          "pass_fail_criteria": "Penalty amount is accurate and based on transparent, fixed logic"
+        },
+        {
+          "id": "SLS-EWP-02",
+          "test_case": "Penalty application",
+          "detailed_procedure": "Check that the penalty is correctly subtracted from the user's withdrawal. Confirm where the penalty goes (e.g., burned, redistributed, sent to treasury). Simulate a variety of early withdrawal scenarios and validate outputs",
+          "pass_fail_criteria": "All deducted penalties are correctly routed to the intended destination"
+        },
+        {
+          "id": "SLS-EWP-03",
+          "test_case": "Penalty enforcement",
+          "detailed_procedure": "Ensure that no user, including privileged roles, can bypass or alter penalty logic arbitrarily (unless explicitly documented and access-controlled)",
+          "pass_fail_criteria": "No bypass is possible via role-based access or clever transaction timing"
+        }
+      ]
+    },
+    {
+      "tag": "Reward Distribution Logic",
+      "test_cases": [
+        {
+          "id": "SLS-RDL-01",
+          "test_case": "Excessive delay",
+          "detailed_procedure": "Check if users can lock small amounts to delay the reward distribution",
+          "pass_fail_criteria": "Presence of time controls and constraints on reward distributions"
+        },
+        {
+          "id": "SLS-RDL-02",
+          "test_case": "Premature claim",
+          "detailed_procedure": "Check if users can claim their rewards prematurely",
+          "pass_fail_criteria": "Premature claim is blocked"
+        },
+        {
+          "id": "SLS-RDL-03",
+          "test_case": "Outdated rewards",
+          "detailed_procedure": "Ensure that the reward update function must be called before all relevant operations",
+          "pass_fail_criteria": "The update reward function is called properly in all places where the reward is relevant"
+        },
+        {
+          "id": "SLS-RDL-04",
+          "test_case": "Precision Loss",
+          "detailed_procedure": "Ensure that the reward distribution formula is safe from precision loss issues such as division before multiplication, rounding down to zero, unsafe casting etc.",
+          "pass_fail_criteria": "Formula is accurate and precise"
+        },
+        {
+          "id": "SLS-RDL-05",
+          "test_case": "Distribution fairness",
+          "detailed_procedure": "Ensure that reward scaling is fair based on user stake and staking duration",
+          "pass_fail_criteria": "Rewards are distributed proportionally to stake and staking time"
+        }
+      ]
+    },
+    {
+      "tag": "Multiplier Boosts",
+      "test_cases": [
+        {
+          "id": "SLS-MB-01",
+          "test_case": "Multiplier consistency",
+          "detailed_procedure": "Confirm that multiplier rules are consistent and can't be manipulated mid-stake",
+          "pass_fail_criteria": "Multipliers are correctly assigned based on transparent, fair, and immutable logic"
+        },
+        {
+          "id": "SLS-MB-02",
+          "test_case": "Boosted reward calculation",
+          "detailed_procedure": "Ensure the multiplier only affects reward rate, not actual stake balance or voting power (unless intended)",
+          "pass_fail_criteria": "Boosted rewards are calculated accurately without affecting unrelated staking metrics"
+        },
+        {
+          "id": "SLS-MB-03",
+          "test_case": "Boost eligibility",
+          "detailed_procedure": "Confirm that rewards are multiplied only after proper eligibility verification; Stake below and above boost thresholds: verify correct multiplier assignment",
+          "pass_fail_criteria": "Only eligible users receive boosts; ineligible users are properly excluded"
+        },
+        {
+          "id": "SLS-MB-04",
+          "test_case": "Access control on boost configuration",
+          "detailed_procedure": "Check who can set or modify boost logic; Ensure that any admin-set multipliers are access-controlled and logged (e.g., through events)",
+          "pass_fail_criteria": "Boost settings cannot be arbitrarily changed or exploited during or after staking; Admin controls for boost configuration are secure and auditable"
+        }
+      ]
+    },
+    {
+      "tag": "Time-weighted Voting Power",
+      "test_cases": [
+        {
+          "id": "SLS-TWVP-01",
+          "test_case": "Stake correlation",
+          "detailed_procedure": "Ensure that the voting power formula factors in both the staked amount and staking duration",
+          "pass_fail_criteria": "Voting power accurately reflects both stake amount and duration"
+        },
+        {
+          "id": "SLS-TWVP-02",
+          "test_case": "Stake timing manipulation",
+          "detailed_procedure": "Ensure users can't gain unfair voting influence by repeatedly staking/unstaking",
+          "pass_fail_criteria": "No user can obtain outsized influence through stake timing manipulation"
+        },
+        {
+          "id": "SLS-TWVP-03",
+          "test_case": "Voting power correctness",
+          "detailed_procedure": "Confirm that power is snapshot-based or calculated dynamically at vote time",
+          "pass_fail_criteria": "Voting power updates are automatic and irreversible without stake modification"
+        },
+        {
+          "id": "SLS-TWVP-04",
+          "test_case": "Decay/Reduction mechanism",
+          "detailed_procedure": "If voting power decays over time after locking ends, ensure it's implemented correctly; Confirm that users who unlock early lose proportional voting power",
+          "pass_fail_criteria": "Users retain voting power after unlocking/withdrawing"
+        },
+        {
+          "id": "SLS-TWVP-05",
+          "test_case": "Snapshot system",
+          "detailed_procedure": "Verify consistency between snapshots and actual user power at the time of a vote",
+          "pass_fail_criteria": "Any snapshot-based system reliably reflects historical states"
+        }
+      ]
+    },
+    {
+      "tag": "Staking with NFTs",
+      "test_cases": [
+        {
+          "id": "SLS-SWN-01",
+          "test_case": "NFT ownership",
+          "detailed_procedure": "Verify that only the NFT owner can stake or unstake",
+          "pass_fail_criteria": "NFTs can be staked, tracked, and unstaked securely by rightful owners"
+        },
+        {
+          "id": "SLS-SWN-02",
+          "test_case": "NFT-compliant",
+          "detailed_procedure": "Confirm that contract respects the ERC-721 receive hooks (onERC721Received) to avoid NFT loss",
+          "pass_fail_criteria": "The contract is ERC721/ERC1155-compliant and handles edge cases like hooks and reentrancy safely"
+        },
+        {
+          "id": "SLS-SWN-03",
+          "test_case": "NFT-related reward logic",
+          "detailed_procedure": "If NFT attributes (e.g., rarity, tier, metadata) influence rewards, confirm: The attributes are immutable or trustlessly verifiable; The reward multipliers are correctly assigned and non-manipulable. Simulate different NFT types and verify the expected reward behavior",
+          "pass_fail_criteria": "Reward boosts (if applicable) are correctly tied to verifiable NFT traits or types"
+        },
+        {
+          "id": "SLS-SWN-04",
+          "test_case": "NFT returns on unstake",
+          "detailed_procedure": "Verify that NFTs are returned to the original staker only; Test emergency unstake or claim scenarios and ensure NFT recovery",
+          "pass_fail_criteria": "NFTs are returned correctly and without loss under all conditions, including emergency or error states"
+        }
+      ]
+    },
+    {
+      "tag": "Auto-reward Claim",
+      "test_cases": [
+        {
+          "id": "SLS-ARC-01",
+          "test_case": "Reward manipulation",
+          "detailed_procedure": "Ensure rewards are updated and transferred before any state changes",
+          "pass_fail_criteria": "No user can lose or double-claim rewards due to state mismanagement"
+        },
+        {
+          "id": "SLS-ARC-02",
+          "test_case": "Trigger simulation",
+          "detailed_procedure": "Stake additional tokens and confirm past rewards are automatically claimed; Unstake partially or fully and confirm rewards are claimed prior to token return; Call claim manually and ensure logic does not break when auto-claim is triggered again",
+          "pass_fail_criteria": "Rewards are accurately and automatically claimed on designated trigger actions"
+        },
+        {
+          "id": "SLS-ARC-03",
+          "test_case": "Inconsistent accounting",
+          "detailed_procedure": "Ensure the reward debt or index (e.g., rewardPerTokenPaid) is updated consistently across all auto-claim triggers",
+          "pass_fail_criteria": "Internal accounting (e.g., user reward balance, pool reward index) is consistent and secure"
+        }
+      ]
+    },
+    {
+      "tag": "Locking for Governance Power",
+      "test_cases": [
+        {
+          "id": "SLS-LFGP-01",
+          "test_case": "Transferrable power",
+          "detailed_procedure": "Confirm that voting power is non-transferable and tightly coupled to the locked state",
+          "pass_fail_criteria": "Governance power is only granted to users with valid, locked tokens"
+        },
+        {
+          "id": "SLS-LFGP-02",
+          "test_case": "Stake correlation",
+          "detailed_procedure": "Ensure that the voting power formula factors in both the staked amount and staking duration",
+          "pass_fail_criteria": "Governance power accurately reflects both stake amount and duration"
+        },
+        {
+          "id": "SLS-LFGP-03",
+          "test_case": "Stale voting power",
+          "detailed_procedure": "Confirm that voting power updates dynamically (if designed to) or uses proper snapshots for fixed-power voting",
+          "pass_fail_criteria": "Voting power is dynamic and up-to-date"
+        },
+        {
+          "id": "SLS-LFGP-04",
+          "test_case": "No lock voting",
+          "detailed_procedure": "Ensure no user or admin can assign arbitrary governance power without locking",
+          "pass_fail_criteria": "Voting power cannot be faked, transferred, or granted without a valid lock"
+        },
+        {
+          "id": "SLS-LFGP-05",
+          "test_case": "Flashloan protection",
+          "detailed_procedure": "Ensure that users are not able to lock and unlock tokens within the same block",
+          "pass_fail_criteria": "Flash loans are prevented via minimum lock duration enforcement"
+        }
+      ]
+    }
+  ]
+} 
