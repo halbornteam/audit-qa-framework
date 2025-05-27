@@ -1,0 +1,243 @@
+{
+  "protocol": "NFTs",
+  "tags": [
+    {
+      "tag": "ERC-721",
+      "test_cases": [
+        {
+          "id": "NFT-ERC721-1",
+          "test_case": "Safe transfer enforcement",
+          "detailed_procedure": "• Attempt to transfer NFT to a contract that does and does not implement onERC721Received.",
+          "pass_fail_criteria": "Transfer to non-receiver contract reverts; transfer to receiver contract succeeds."
+        },
+        {
+          "id": "NFT-ERC721-2",
+          "test_case": "Metadata mutation (dynamic updates)",
+          "detailed_procedure": "• Update metadata for a token\n• Query tokenURI before and after the update.",
+          "pass_fail_criteria": "tokenURI reflects updated metadata after changes; unauthorized updates are rejected."
+        },
+        {
+          "id": "NFT-ERC721-3",
+          "test_case": "Royalties implementation (EIP-2981)",
+          "detailed_procedure": "• Query royaltyInfo for a token sale\n• Simulate a secondary sale.",
+          "pass_fail_criteria": "Royalty recipient and amount are correct per EIP-2981; royalties are paid on secondary sales."
+        },
+        {
+          "id": "NFT-ERC721-4",
+          "test_case": "Lazy minting (on-demand creation)",
+          "detailed_procedure": "• Attempt to mint a token using a signed voucher or similar mechanism.",
+          "pass_fail_criteria": "Token is minted only when valid proof is provided; unauthorized minting is rejected."
+        },
+        {
+          "id": "NFT-ERC721-5",
+          "test_case": "On-chain SVG/metadata",
+          "detailed_procedure": "• Query tokenURI\n• Verify that metadata and/or SVG image is generated fully on-chain.",
+          "pass_fail_criteria": "tokenURI returns valid on-chain data; no external dependencies required."
+        },
+        {
+          "id": "NFT-ERC721-6",
+          "test_case": "NFT rentals / delegation",
+          "detailed_procedure": "• Delegate or rent an NFT to another address\n• Attempt to use or transfer it.",
+          "pass_fail_criteria": "Delegated address can use NFT as intended; ownership is not transferred; rental period is enforced."
+        },
+        {
+          "id": "NFT-ERC721-7",
+          "test_case": "Soulbound (non-transferable) tokens",
+          "detailed_procedure": "• Attempt to transfer a soulbound token to another address.",
+          "pass_fail_criteria": "Transfer of soulbound token is always rejected; only minting and burning are allowed."
+        },
+        {
+          "id": "NFT-ERC721-8",
+          "test_case": "Transfer lock / cooldown",
+          "detailed_procedure": "• Attempt to transfer a token before the cooldown or lock period\n• Attempt to transfer after the cooldown or lock period.",
+          "pass_fail_criteria": "Transfer is only allowed after the cooldown/lock period has expired."
+        },
+        {
+          "id": "NFT-ERC721-9",
+          "test_case": "Reveal mechanism",
+          "detailed_procedure": "• Mint a token\n• Query metadata before the reveal event\n• Query metadata after the reveal event.",
+          "pass_fail_criteria": "Metadata is hidden before reveal; correct metadata is shown after reveal."
+        },
+        {
+          "id": "NFT-ERC721-10",
+          "test_case": "Whitelist/OG-based mint",
+          "detailed_procedure": "• Attempt to mint as a whitelisted address\n• Attempt to mint as a non-whitelisted address.",
+          "pass_fail_criteria": "Only whitelisted addresses can mint during restricted phase; others are rejected."
+        },
+        {
+          "id": "NFT-ERC721-11",
+          "test_case": "Minting phases (multi-stage distribution)",
+          "detailed_procedure": "• Attempt to mint during presale phase\n• Attempt to mint during public sale phase\n• Verify rules for each phase.",
+          "pass_fail_criteria": "Minting rules and limits are enforced for each phase; transitions between phases work as intended."
+        },
+        {
+          "id": "NFT-ERC721-12",
+          "test_case": "Randomness integration (e.g., Chainlink VRF)",
+          "detailed_procedure": "• Mint a token that uses randomness for assignment\n• Verify the result.",
+          "pass_fail_criteria": "Randomness is verifiable and unpredictable; token assignment is fair and cannot be manipulated."
+        },
+        {
+          "id": "NFT-ERC721-13",
+          "test_case": "Merkle proof whitelist validation",
+          "detailed_procedure": "• Mint with valid proof\n• Mint with invalid proof\n• Attempt to reuse a proof",
+          "pass_fail_criteria": "Valid proof mints succeed; invalid or reused proofs revert."
+        },
+        {
+          "id": "NFT-ERC721-14",
+          "test_case": "Token permit (gasless approval)",
+          "detailed_procedure": "• Sign and execute permit\n• Attempt to reuse or use expired signature",
+          "pass_fail_criteria": "Permit sets approval; reused or expired signatures revert."
+        },
+        {
+          "id": "NFT-ERC721-15",
+          "test_case": "Metadata freezing/locking",
+          "detailed_procedure": "• Update metadata\n• Freeze/lock metadata\n• Attempt update after freezing",
+          "pass_fail_criteria": "Updates succeed before freeze; post-freeze updates revert."
+        },
+        {
+          "id": "NFT-ERC721-16",
+          "test_case": "Token enumeration",
+          "detailed_procedure": "• Mint and transfer tokens\n• Query enumeration functions\n• Burn tokens and re-query",
+          "pass_fail_criteria": "Enumeration functions return correct tokens after operations."
+        },
+        {
+          "id": "NFT-ERC721-17",
+          "test_case": "Emergency pause mechanism",
+          "detailed_procedure": "• Pause and unpause contract\n• Attempt transfers and minting while paused\n• Verify pause events",
+          "pass_fail_criteria": "Only authorized can pause/unpause; paused functions revert; events emitted."
+        },
+        {
+          "id": "NFT-ERC721-18",
+          "test_case": "Contract upgrade security",
+          "detailed_procedure": "• Upgrade contract with authorized and unauthorized accounts\n• Test token functionality before and after upgrade\n• Verify data persistence",
+          "pass_fail_criteria": "Authorized upgrades succeed; unauthorized fail; data and functions remain correct."
+        },
+        {
+          "id": "NFT-ERC721-19",
+          "test_case": "Signature malleability resistance",
+          "detailed_procedure": "• Test EIP-712 signatures\n• Attempt replay and malleable signatures\n• Test after contract upgrade",
+          "pass_fail_criteria": "Only valid, unused signatures succeed; malleable or replayed signatures revert."
+        },
+        {
+          "id": "NFT-ERC721-20",
+          "test_case": "Oracle price feed integration",
+          "detailed_procedure": "• Connect to price oracle\n• Mint at different price points\n• Test fallback on oracle failure",
+          "pass_fail_criteria": "Mint price adjusts with oracle; fallback works; manipulation blocked."
+        },
+        {
+          "id": "NFT-ERC721-21",
+          "test_case": "Cross-platform metadata rendering",
+          "detailed_procedure": "• Generate metadata\n• Test rendering on major marketplaces\n• Validate special traits and media",
+          "pass_fail_criteria": "Metadata renders and displays correctly on all platforms."
+        }
+      ]
+    },
+    {
+      "tag": "ERC-1155",
+      "test_cases": [
+        {
+          "id": "NFT-ERC1155-1",
+          "test_case": "Batch transfer validation",
+          "detailed_procedure": "• Mint multiple token IDs\n• Batch transfer with mismatched arrays (should fail)\n• Batch transfer to receiver and non-receiver contracts",
+          "pass_fail_criteria": "Mismatched arrays revert; receiver contract succeeds; non-receiver reverts."
+        },
+        {
+          "id": "NFT-ERC1155-2",
+          "test_case": "Balance batch query consistency",
+          "detailed_procedure": "• Mint different token IDs\n• Query balances with balanceOfBatch and compare\n• Try balanceOfBatch with mismatched array lengths",
+          "pass_fail_criteria": "balanceOfBatch matches balanceOf; mismatched arrays revert; non-existent tokens return 0."
+        },
+        {
+          "id": "NFT-ERC1155-3",
+          "test_case": "Approval for all scope",
+          "detailed_procedure": "• Set and revoke operator approval\n• Attempt transfer by approved and revoked operator\n• Try self-approval",
+          "pass_fail_criteria": "Approval status correct; approved can transfer; revoked/self-approval cannot."
+        },
+        {
+          "id": "NFT-ERC1155-4",
+          "test_case": "URI generation",
+          "detailed_procedure": "• Mint tokens with different IDs\n• Query uri(tokenId)\n• Check URI format and substitution",
+          "pass_fail_criteria": "URI schema and {id} substitution correct; points to valid metadata."
+        },
+        {
+          "id": "NFT-ERC1155-5",
+          "test_case": "Fungible/Non-fungible hybrid usage",
+          "detailed_procedure": "• Mint fungible and non-fungible tokens\n• Transfer partial and full amounts\n• Verify balances",
+          "pass_fail_criteria": "Fungible allows partial transfer; non-fungible as expected; over-transfer reverts."
+        },
+        {
+          "id": "NFT-ERC1155-6",
+          "test_case": "ERC1155Receiver validation",
+          "detailed_procedure": "• Transfer to correct and incorrect receiver contracts\n• Test high-gas receiver contract",
+          "pass_fail_criteria": "Correct receiver succeeds; incorrect fails; high-gas works within limits."
+        },
+        {
+          "id": "NFT-ERC1155-7",
+          "test_case": "ERC-1155 royalties (EIP-2981)",
+          "detailed_procedure": "• Set and update royalties\n• Query royaltyInfo\n• Try setting royalties above 100%",
+          "pass_fail_criteria": "royaltyInfo correct; updates reflect; over-100% reverts."
+        },
+        {
+          "id": "NFT-ERC1155-8",
+          "test_case": "Multi-token batch operations",
+          "detailed_procedure": "• Mint and transfer multiple token IDs\n• Batch transfer by operator\n• Burn tokens and verify balances",
+          "pass_fail_criteria": "Balances correct after operations; batch handles mixed IDs; events emitted."
+        },
+        {
+          "id": "NFT-ERC1155-9",
+          "test_case": "ERC-1155 metadata update mechanism",
+          "detailed_procedure": "• Set and update baseURI\n• Query URI before and after update\n• Attempt unauthorized update",
+          "pass_fail_criteria": "URI updates as expected; non-owner update fails; events emitted."
+        },
+        {
+          "id": "NFT-ERC1155-10",
+          "test_case": "Token ID range limits",
+          "detailed_procedure": "• Batch mint near boundaries\n• Query balances at extreme IDs",
+          "pass_fail_criteria": "No overflow at uint256 max; batch handles edge cases."
+        },
+        {
+          "id": "NFT-ERC1155-11",
+          "test_case": "URI substitution patterns",
+          "detailed_procedure": "• Set URI with {id} placeholder\n• Query URI for various IDs\n• Verify substitution",
+          "pass_fail_criteria": "{id} substituted with lowercase hex; leading zeros preserved; URI consistent."
+        },
+        {
+          "id": "NFT-ERC1155-12",
+          "test_case": "Token-bound delegation",
+          "detailed_procedure": "• Set approval for specific token ID\n• Transfer approved and unapproved tokens",
+          "pass_fail_criteria": "Operator can transfer approved token; cannot transfer unapproved; scopes enforced."
+        },
+        {
+          "id": "NFT-ERC1155-13",
+          "test_case": "Emergency pause mechanism",
+          "detailed_procedure": "• Pause and unpause contract\n• Attempt transfers and minting while paused\n• Verify pause events",
+          "pass_fail_criteria": "Only authorized can pause/unpause; paused functions revert; events emitted."
+        },
+        {
+          "id": "NFT-ERC1155-14",
+          "test_case": "Contract upgrade security",
+          "detailed_procedure": "• Upgrade contract with authorized and unauthorized accounts\n• Test token functionality before and after upgrade\n• Verify data persistence",
+          "pass_fail_criteria": "Authorized upgrades succeed; unauthorized fail; data and functions remain correct."
+        },
+        {
+          "id": "NFT-ERC1155-15",
+          "test_case": "Signature malleability resistance",
+          "detailed_procedure": "• Test EIP-712 signatures\n• Attempt replay and malleable signatures\n• Test after contract upgrade",
+          "pass_fail_criteria": "Only valid, unused signatures succeed; malleable or replayed signatures revert."
+        },
+        {
+          "id": "NFT-ERC1155-16",
+          "test_case": "Oracle price feed integration",
+          "detailed_procedure": "• Connect to price oracle\n• Mint at different price points\n• Test fallback on oracle failure",
+          "pass_fail_criteria": "Mint price adjusts with oracle; fallback works; manipulation blocked."
+        },
+        {
+          "id": "NFT-ERC1155-17",
+          "test_case": "Cross-platform metadata rendering",
+          "detailed_procedure": "• Generate metadata\n• Test rendering on major marketplaces\n• Validate special traits and media",
+          "pass_fail_criteria": "Metadata renders and displays correctly on all platforms."
+        }
+      ]
+    }
+  ]
+}
