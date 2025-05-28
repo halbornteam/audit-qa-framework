@@ -1,0 +1,156 @@
+{
+    "protocol": "Rollup / L2 Security Tests",
+    "tags": [
+      {
+        "tag": "Fraud Handling",
+        "test_cases": [
+          {
+            "id": "ROLLUP-FRAUD-01",
+            "test_case": "Valid message acceptance",
+            "detailed_procedure": "- Submit a correctly formed cross-chain message with a valid proof.\n- Observe that the rollup contract processes the message and updates state as expected.",
+            "pass_fail_criteria": "Message is accepted and state change matches the payload exactly."
+          },
+          {
+            "id": "ROLLUP-FRAUD-02",
+            "test_case": "Fraudulent message rejection",
+            "detailed_procedure": "- Craft a message with an invalid or tampered proof.\n- Submit it to the rollup contract.",
+            "pass_fail_criteria": "Contract rejects the fraudulent message; no state change occurs."
+          },
+          {
+            "id": "ROLLUP-FRAUD-03",
+            "test_case": "Replay attack resistance",
+            "detailed_procedure": "- Re-submit a previously accepted valid message.\n- Monitor contract response.",
+            "pass_fail_criteria": "Second submission is rejected; no double execution or double mint."
+          },
+          {
+            "id": "ROLLUP-FRAUD-04",
+            "test_case": "Nonce out-of-sequence rejection",
+            "detailed_procedure": "- Send one message with a decremented nonce, then one with an incremented nonce that skips expected order.\n- Observe contract handling.",
+            "pass_fail_criteria": "Both out-of-sequence messages are rejected; nonce ordering remains intact."
+          }
+        ]
+      },
+      {
+        "tag": "State Commitment Verification",
+        "test_cases": [
+          {
+            "id": "ROLLUP-SCV-01",
+            "test_case": "Commit access control",
+            "detailed_procedure": "- Attempt to submit a state root from an unauthorized account.\n- Observe commit result on the L1 contract.",
+            "pass_fail_criteria": "Only whitelisted/verified accounts can commit; unauthorized commit reverts."
+          },
+          {
+            "id": "ROLLUP-SCV-02",
+            "test_case": "Consensus vote presence",
+            "detailed_procedure": "- Submit a state root without reaching required validator vote threshold.\n- Monitor commit outcome.",
+            "pass_fail_criteria": "Commit rejected unless quorum is met."
+          },
+          {
+            "id": "ROLLUP-SCV-03",
+            "test_case": "Stake-weighted voting accuracy",
+            "detailed_procedure": "- Simulate validators with different stakes casting votes.\n- Verify that vote weighting matches stake proportions.",
+            "pass_fail_criteria": "Root is accepted only if stake-weighted threshold is satisfied."
+          },
+          {
+            "id": "ROLLUP-SCV-04",
+            "test_case": "Slashing on bad commit",
+            "detailed_procedure": "- Submit an intentionally incorrect state root from a validator.\n- Observe slashing mechanism execution.",
+            "pass_fail_criteria": "Validator stake is slashed; incorrect root not accepted."
+          }
+        ]
+      },
+      {
+        "tag": "Sequencer Robustness",
+        "test_cases": [
+          {
+            "id": "ROLLUP-SEQ-01",
+            "test_case": "Transaction acceptance",
+            "detailed_procedure": "- Feed sequencer with a diverse set of valid transactions.\n- Verify that all are sequenced within SLA.",
+            "pass_fail_criteria": "No valid transaction is dropped or censored."
+          },
+          {
+            "id": "ROLLUP-SEQ-02",
+            "test_case": "Parsing error resistance",
+            "detailed_procedure": "- Submit transactions with edge-case encodings and maximal field lengths.\n- Monitor for crashes or mis-parsing.",
+            "pass_fail_criteria": "Sequencer processes or cleanly rejects inputs without error."
+          },
+          {
+            "id": "ROLLUP-SEQ-03",
+            "test_case": "High volume DoS",
+            "detailed_procedure": "- Blast sequencer with >10 000 valid tx in rapid succession.\n- Measure throughput and stability.",
+            "pass_fail_criteria": "Sequencer remains live; throughput degradation within acceptable limits."
+          },
+          {
+            "id": "ROLLUP-SEQ-04",
+            "test_case": "Oversized transaction DoS",
+            "detailed_procedure": "- Submit transactions near maximum calldata / gas limits.\n- Observe sequencer memory and processing.",
+            "pass_fail_criteria": "Sequencer throttles or splits large tx; no crash or permanent stall."
+          }
+        ]
+      },
+      {
+        "tag": "Challenge Window",
+        "test_cases": [
+          {
+            "id": "ROLLUP-CHW-01",
+            "test_case": "Challenge period enforcement",
+            "detailed_procedure": "- Post a fraudulent assertion; attempt to challenge within window and after expiration.",
+            "pass_fail_criteria": "Challenge succeeds within window; fails after expiration. Funds remain safe."
+          },
+          {
+            "id": "ROLLUP-CHW-02",
+            "test_case": "Empty challenge spam",
+            "detailed_procedure": "- Submit 10 000 empty or zero-gas challenges.\n- Observe contract gas usage and liveness.",
+            "pass_fail_criteria": "Contract resists spam; gas costs deter DoS; rollup remains operable."
+          }
+        ]
+      },
+      {
+        "tag": "Forced Withdrawals",
+        "test_cases": [
+          {
+            "id": "ROLLUP-FW-01",
+            "test_case": "Sequencer outage withdrawal",
+            "detailed_procedure": "- Halt sequencer operations.\n- Use L1 rescue/force-exit path to withdraw funds.",
+            "pass_fail_criteria": "Withdrawal succeeds via fallback path without sequencer participation."
+          },
+          {
+            "id": "ROLLUP-FW-02",
+            "test_case": "Total L2 shutdown withdrawal",
+            "detailed_procedure": "- Simulate permanent L2 downtime.\n- Trigger emergency withdraw mechanism.",
+            "pass_fail_criteria": "Users recover assets on L1 after timeout/DAO approval; no fund loss."
+          }
+        ]
+      },
+      {
+        "tag": "Data Availability Layer",
+        "test_cases": [
+          {
+            "id": "ROLLUP-DAL-01",
+            "test_case": "Storage tampering detection",
+            "detailed_procedure": "- Attempt to alter stored batch data in the DA layer (if permissions allow testing environment).\n- Verify hash commitments on L1.",
+            "pass_fail_criteria": "Mismatch detected; altered data rejected or ignored."
+          },
+          {
+            "id": "ROLLUP-DAL-02",
+            "test_case": "Consensus-only mutability",
+            "detailed_procedure": "- Attempt to push data to DA layer bypassing consensus.\n- Observe acceptance.",
+            "pass_fail_criteria": "Data rejected; only consensus-approved actors can write."
+          },
+          {
+            "id": "ROLLUP-DAL-03",
+            "test_case": "Batch inclusion proof",
+            "detailed_procedure": "- For each sequenced batch, request proof of storage from DA layer.\n- Verify proof matches hash on L1.",
+            "pass_fail_criteria": "Every batch has a valid DA proof; unmatched batches cause rollup halt or revert."
+          },
+          {
+            "id": "ROLLUP-DAL-04",
+            "test_case": "Submitter corruption resilience",
+            "detailed_procedure": "- Simulate malicious DA submitter injecting corrupted chunk.\n- Monitor re-encoding / redundancy checks.",
+            "pass_fail_criteria": "Corrupted chunk detected and excluded; honest replicas preserve data integrity."
+          }
+        ]
+      }
+    ]
+  }
+  

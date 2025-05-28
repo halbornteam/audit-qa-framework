@@ -1,0 +1,236 @@
+{
+  "protocol": "Bridge Security Tests",
+  "tags": [
+    {
+      "tag": "Lock and Mint Mechanism",
+      "test_cases": [
+        {
+          "id": "BRIDGE-LM-01",
+          "test_case": "Minting accuracy",
+          "detailed_procedure": "- Initiate a lock transaction on Chain A with a specific amount.\n- Observe the minting transaction on Chain B.\n- Verify that the minted amount of wrapped assets on Chain B equals the deposited amount on Chain A minus the predefined bridge fees.",
+          "pass_fail_criteria": "Minted amount on Chain B = Deposited amount on Chain A - Fees (within 1 wei or smallest asset unit)."
+        },
+        {
+          "id": "BRIDGE-LM-02",
+          "test_case": "Unlocking accuracy",
+          "detailed_procedure": "- Initiate a burn transaction of wrapped assets on Chain B.\n- Observe the unlocking transaction on Chain A.\n- Verify that the unlocked amount on Chain A equals the burned amount on Chain B minus the predefined bridge fees.",
+          "pass_fail_criteria": "Unlocked amount on Chain A = Burned amount on Chain B - Fees (within 1 wei or smallest asset unit)."
+        },
+        {
+          "id": "BRIDGE-LM-03",
+          "test_case": "Invariant check (total lock vs. minted)",
+          "detailed_procedure": "- After a series of lock and unlock operations, query the total assets locked on Chain A.\n- Query the total supply of wrapped assets minted on Chain B.\n- Query the total fees collected by the bridge protocol.",
+          "pass_fail_criteria": "Total locked assets on Chain A = Total minted wrapped assets on Chain B + Total collected fees. Invariant must hold."
+        },
+        {
+          "id": "BRIDGE-LM-04",
+          "test_case": "Invariant stress test (repeated operations)",
+          "detailed_procedure": "- Perform 10,000 cycles of:\n    1. Locking a random amount on Chain A.\n    2. Minting wrapped assets on Chain B.\n    3. Burning a random amount of wrapped assets on Chain B.\n    4. Unlocking assets on Chain A.\n- After the cycles, check the invariant: total locked assets on Chain A vs. total minted wrapped assets on Chain B + total fees.",
+          "pass_fail_criteria": "Invariant (Total locked = Total minted + Total fees) maintained throughout and after 10,000 operations, accounting for fee accumulation."
+        },
+        {
+          "id": "BRIDGE-LM-05",
+          "test_case": "Unauthorized minting (no counterparty lock)",
+          "detailed_procedure": "- Attempt to trigger the minting function on Chain B directly or via a manipulated message that does not correspond to a valid lock event on Chain A.\n- Monitor the total supply of wrapped assets on Chain B over time without any new lock events on Chain A.",
+          "pass_fail_criteria": "No new wrapped assets are minted on Chain B without a corresponding, valid lock event on Chain A. Total supply of wrapped assets should not increase autonomously."
+        },
+        {
+          "id": "BRIDGE-LM-06",
+          "test_case": "Zero amount transactions",
+          "detailed_procedure": "- Attempt to deposit 0 assets on Chain A to mint on Chain B.\n- Attempt to withdraw 0 wrapped assets on Chain B to unlock on Chain A.",
+          "pass_fail_criteria": "Transactions attempting to deposit or withdraw 0 amounts are rejected by the bridge contracts on both chains."
+        },
+        {
+          "id": "BRIDGE-LM-07",
+          "test_case": "Cross-chain decimal precision mismatch",
+          "detailed_procedure": "- Test bridging assets between chains with different decimal precision (e.g., Chain A uses 18 decimals, Chain B uses 6 decimals).\n- Lock 1.123456789012345678 tokens (18 decimals) on Chain A.\n- Verify how the bridge handles the precision conversion when minting on Chain B.\n- Test the reverse operation: burn tokens on Chain B and unlock on Chain A.",
+          "pass_fail_criteria": "Bridge correctly handles decimal precision differences without loss of funds. Precision should be maintained or handled with clear rounding rules. Users should not lose value due to precision truncation beyond acceptable limits (e.g., dust amounts)."
+        },
+        {
+          "id": "BRIDGE-LM-08",
+          "test_case": "Maximum integer overflow between chains",
+          "detailed_procedure": "- Test bridging the maximum possible amount supported by the source chain to a destination chain with a smaller maximum integer size.\n- Attempt to lock an amount close to uint256 max on Chain A when Chain B only supports uint128.\n- Verify the bridge's handling of potential overflow scenarios.",
+          "pass_fail_criteria": "Bridge prevents overflow conditions and either rejects transactions that would cause overflow or implements safe conversion mechanisms. No funds should be lost or incorrectly represented due to integer size differences."
+        },
+        {
+            "id": "BRIDGE-LM-09",
+            "test_case": "Direct contract function calls bypass",
+            "detailed_procedure": "- Attempt to call mint/unlock functions directly on the bridge contracts without going through the proper cross-chain message relay process.\n- Test calling mint() function on Chain B contract directly with arbitrary parameters.\n- Test calling unlock() function on Chain A contract directly with arbitrary parameters.\n- Verify access control mechanisms prevent unauthorized direct calls.",
+            "pass_fail_criteria": "Direct calls to mint/unlock functions are rejected unless they come from authorized relayers with valid cross-chain proofs. Functions should have proper access control modifiers (e.g., onlyRelayer, requireValidProof)."
+          }
+      ]
+    },
+    {
+      "tag": "Chain Rollback Hazard",
+      "test_cases": [
+        {
+          "id": "BRIDGE-CRH-01",
+          "test_case": "Source chain rollback impact",
+          "detailed_procedure": "- Send a lock message from Chain A to Chain B.\n- Before the message is confirmed and assets are minted on Chain B, simulate a rollback of Chain A to a state before the lock transaction was sent.\n- Observe if assets are still minted on Chain B despite the originating transaction being reverted on Chain A.",
+          "pass_fail_criteria": "Assets are not minted on Chain B if the corresponding lock transaction on Chain A is rolled back. If minted, a mechanism must exist to reconcile/burn the erroneously minted assets or prevent their use."
+        },
+        {
+          "id": "BRIDGE-CRH-02",
+          "test_case": "Destination chain rollback impact",
+          "detailed_procedure": "- Send a lock message from Chain A, which is successfully relayed and assets are minted on Chain B.\n- Simulate a rollback of Chain B to a state before the minting transaction occurred.\n- Verify the state of assets on Chain A (should remain locked) and attempt to recover/re-mint assets on Chain B or unlock on Chain A.",
+          "pass_fail_criteria": "Assets remain locked on Chain A. A clear mechanism must exist to either re-process the minting on Chain B after its reorganisation or allow the user to reclaim assets on Chain A if minting becomes impossible. Assets should not be permanently lost or unrecoverable."
+        }
+      ]
+    },
+    {
+      "tag": "Message Relay Timing Attack (Timelock)",
+      "test_cases": [
+        {
+          "id": "BRIDGE-TIM-01",
+          "test_case": "Transaction reversal during relay (race condition)",
+          "detailed_procedure": "- Initiate a lock transaction on Chain A. The message is picked up by a relayer.\n- During the time window the relayer is transporting the message to Chain B (before confirmation on Chain B), attempt to revert or cancel the lock transaction on Chain A (e.g., via a higher gas fee replacement transaction, if applicable, or if a timelock for cancellation exists).\n- Observe if assets can be unlocked/reclaimed on Chain A while also being minted on Chain B.",
+          "pass_fail_criteria": "It should not be possible to unlock assets on Chain A after the lock message has been irrevocably committed for relay AND have assets minted on Chain B. The system should prevent double spending or asset duplication through such timing attacks. If Chain A transaction is reverted, minting on Chain B must not occur."
+        }
+      ]
+    },
+    {
+      "tag": "Proof Integrity",
+      "test_cases": [
+        {
+          "id": "BRIDGE-PI-01",
+          "test_case": "Forged proof submission",
+          "detailed_procedure": "- Craft a relay message for Chain B (e.g., for minting wrapped assets) with an invalid proof.\n    - Scenario 1: Modify the signature of a valid proof.\n    - Scenario 2: Keep the signature valid but modify the payload (e.g., amount, recipient) of the message.\n- Submit this forged message to the bridge contract on Chain B.",
+          "pass_fail_criteria": "The bridge contract on Chain B rejects the message with the forged/tampered proof. No state change (e.g., minting) occurs."
+        },
+        {
+          "id": "BRIDGE-PI-02",
+          "test_case": "Proof replay attack (double spend/mint)",
+          "detailed_procedure": "- Successfully complete a lock-and-mint operation, obtaining a valid proof for minting on Chain B.\n- After the wrapped assets are minted, attempt to submit the exact same valid proof to the bridge contract on Chain B again.",
+          "pass_fail_criteria": "The second submission of the same proof is rejected. The system must prevent replay of proofs to avoid double minting or double withdrawal."
+        },
+        {
+          "id": "BRIDGE-PI-03",
+          "test_case": "Nonce manipulation",
+          "detailed_procedure": "- If the bridge protocol uses nonces for message ordering or replay protection:\n    - Scenario 1: Attempt to relay a message with a nonce lower than the expected nonce.\n    - Scenario 2: Attempt to relay a message with a nonce significantly higher than the expected nonce (skipping nonces).\n- Observe the behavior of the bridge contract.",
+          "pass_fail_criteria": "Messages with incorrect nonces (too low or out of sequence, depending on implementation) are rejected. Nonce system functions as expected to maintain order and prevent replay."
+        },
+        {
+          "id": "BRIDGE-PI-04",
+          "test_case": "Unauthorized relayer (self-signing attempt)",
+          "detailed_procedure": "- Generate a key pair not registered as an authorized relayer.\n- Create a valid bridge message (e.g., for minting) and sign it using this unauthorized key pair.\n- Submit this self-signed message to the bridge contract.",
+          "pass_fail_criteria": "The bridge contract rejects the message signed by an unauthorized entity. Only messages relayed by whitelisted/authorized relayers are processed."
+        },
+        {
+          "id": "BRIDGE-PI-05",
+          "test_case": "Nonce consumption DOS attack",
+          "detailed_procedure": "- Identify the expected nonce for the next valid message.\n- Submit a message with the correct nonce but an invalid signature or tampered payload to the destination chain.\n- Immediately after, attempt to submit the legitimate message with the same nonce and valid signature.\n- Observe if the legitimate message is rejected due to nonce already being consumed by the invalid message.",
+          "pass_fail_criteria": "The bridge contract should validate the message signature/proof before consuming the nonce. Invalid messages should not consume nonces, preventing DOS attacks on legitimate transactions. Alternatively, if nonces are consumed regardless, there should be a mechanism to recover from such attacks."
+        }
+      ]
+    },
+    {
+      "tag": "Gas Refund Mechanism",
+      "test_cases": [
+        {
+          "id": "BRIDGE-GRM-01",
+          "test_case": "Gas refund calculation accuracy",
+          "detailed_procedure": "- Execute a cross-chain transaction that qualifies for gas refund.\n- Monitor the actual gas consumed by the relayer on the destination chain.\n- Verify that the gas refund amount calculated and distributed matches the actual gas cost within acceptable margins.\n- Test with different gas prices and transaction complexities.",
+          "pass_fail_criteria": "Gas refund amount accurately reflects actual gas costs incurred by relayers, accounting for current gas prices. Refund should be within 5% of actual costs or as per protocol specifications."
+        },
+        {
+          "id": "BRIDGE-GRM-02",
+          "test_case": "Gas refund manipulation attack",
+          "detailed_procedure": "- Attempt to manipulate gas consumption during message relay to inflate refund amounts.\n- Test scenarios where a malicious relayer artificially increases gas usage through inefficient operations or gas-wasting loops.\n- Verify if the refund mechanism has caps or validation to prevent excessive refunds.",
+          "pass_fail_criteria": "Gas refund mechanism prevents manipulation attacks. Either gas consumption is measured accurately regardless of relayer behavior, or there are caps/limits that prevent excessive refunds from artificial gas inflation."
+        },
+        {
+          "id": "BRIDGE-GRM-03",
+          "test_case": "Gas refund double claiming",
+          "detailed_procedure": "- Complete a cross-chain transaction and claim the gas refund.\n- Attempt to claim the gas refund again using the same transaction proof or identifier.\n- Test if multiple relayers can claim refunds for the same transaction.",
+          "pass_fail_criteria": "Gas refunds can only be claimed once per transaction. The system prevents double claiming and ensures only the legitimate relayer receives the refund."
+        },
+        {
+          "id": "BRIDGE-GRM-04",
+          "test_case": "Gas refund pool exhaustion",
+          "detailed_procedure": "- Monitor the gas refund pool balance.\n- Execute transactions until the refund pool is nearly or completely exhausted.\n- Verify system behavior when refunds cannot be paid due to insufficient pool funds.",
+          "pass_fail_criteria": "System gracefully handles gas refund pool exhaustion. Either transactions are queued until pool is replenished, alternative funding mechanisms activate, or clear notifications are provided to users/relayers about refund unavailability."
+        }
+      ]
+    },
+    {
+      "tag": "Relayer Denial of Service (DOS)",
+      "test_cases": [
+        {
+          "id": "BRIDGE-RDOS-01",
+          "test_case": "Event parsing vulnerability in relayer",
+          "detailed_procedure": "- Analyze the relayer's code for event parsing logic from the source chain.\n- Craft and emit a malformed or unexpected event on the source chain that might trigger a parsing error, crash, or infinite loop in the relayer software.",
+          "pass_fail_criteria": "Relayer software handles malformed or unexpected events gracefully (e.g., logs error, skips event) and continues operation without crashing or significant service degradation."
+        },
+        {
+          "id": "BRIDGE-RDOS-02",
+          "test_case": "Memory exhaustion via event flood in relayer",
+          "detailed_procedure": "- Generate a very large number of valid bridge events on the source chain in a short period.\n- Monitor the relayer's memory consumption and processing capability.",
+          "pass_fail_criteria": "Relayer manages high event load without excessive memory consumption leading to a crash. It may throttle or queue events but remains operational."
+        },
+        {
+          "id": "BRIDGE-RDOS-03",
+          "test_case": "Relayer logic issues (state conflicts)",
+          "detailed_procedure": "- Inspect relayer code for potential state management issues, especially when handling concurrent events from source and destination chains or during network instability.\n- Attempt to create scenarios that might lead to inconsistent states in the relayer (e.g., by rapidly sending conflicting signals or simulating network partitions).",
+          "pass_fail_criteria": "Relayer maintains consistent internal state and operates correctly even under complex sequences of events or simulated adverse network conditions. No deadlock or livelock."
+        }
+      ]
+    },
+    {
+      "tag": "Chain Denial of Service (DOS)",
+      "test_cases": [
+        {
+          "id": "BRIDGE-CDOS-01",
+          "test_case": "Cross-chain message parsing vulnerability (contract level)",
+          "detailed_procedure": "- Examine the message parsing logic within the bridge smart contracts on each chain.\n- Attempt to forge a message from one chain to the other that exploits a vulnerability in the receiving chain's contract parsing logic, potentially causing a revert, incorrect state change, or consuming excessive gas.",
+          "pass_fail_criteria": "Bridge contracts on both chains correctly parse valid messages and safely reject or handle malformed/malicious messages without unintended state changes or excessive resource consumption."
+        },
+        {
+          "id": "BRIDGE-CDOS-02",
+          "test_case": "Prolonged chain outage (asset recovery)",
+          "detailed_procedure": "- Simulate one of the connected chains (e.g., Chain B) being offline or inaccessible for an extended period after assets have been locked on Chain A.\n- Evaluate the mechanisms available for users to recover their locked assets on Chain A or if there's a defined procedure for handling such scenarios.",
+          "pass_fail_criteria": "A well-defined process exists for asset recovery or resolution if one chain becomes permanently or for a long duration inaccessible. Users should not have their assets permanently locked without recourse. This might involve an emergency unlock mechanism after a certain timeout, governed by a DAO or other trusted setup."
+        }
+      ]
+    },
+    {
+      "tag": "Relayer Incentives and Slashing",
+      "test_cases": [
+        {
+          "id": "BRIDGE-RIS-01",
+          "test_case": "Honest relayer reward verification",
+          "detailed_procedure": "- Operate an honest relayer node according to the protocol rules.\n- Successfully relay a series of valid transactions.\n- Verify that the relayer receives the expected rewards or fees as per the bridge's incentive mechanism.",
+          "pass_fail_criteria": "Relayer receives correct rewards for honest and timely message relay. Incentive mechanism functions as designed."
+        },
+        {
+          "id": "BRIDGE-RIS-02",
+          "test_case": "False proof submission and slashing (impersonation)",
+          "detailed_procedure": "- Attempt to submit a fraudulent proof (e.g., for a non-existent lock or an attempt to double-mint) to the destination chain.\n- If possible, try to attribute this fraudulent proof to another registered relayer's identity.\n- Observe if the offending entity (the submitter or the impersonated relayer, depending on design) is correctly identified and slashed according to the protocol's rules.",
+          "pass_fail_criteria": "The correct entity responsible for submitting a false proof is slashed. It should not be possible to cause an honest relayer to be slashed by impersonating them if the system design prevents it (e.g., by requiring proofs to be signed by the relayer's key). The slashing mechanism functions as intended."
+        }
+      ]
+    },
+    {
+      "tag": "Cross-Chain Message Ordering",
+      "test_cases": [
+        {
+          "id": "BRIDGE-CMO-01",
+          "test_case": "Message ordering manipulation",
+          "detailed_procedure": "- Send multiple bridge messages from Chain A to Chain B in a specific sequence (e.g., Message 1, Message 2, Message 3).\n- Attempt to relay these messages to Chain B in a different order (e.g., Message 3, Message 1, Message 2) by controlling or influencing the relayer.\n- Observe if the bridge contract on Chain B processes messages out of order and if this causes any state inconsistencies.",
+          "pass_fail_criteria": "Bridge contract either enforces strict message ordering (rejecting out-of-order messages) or handles out-of-order processing safely without state corruption or user fund loss. If ordering is enforced, appropriate mechanisms should exist to handle delayed or missing messages."
+        },
+        {
+          "id": "BRIDGE-CMO-02",
+          "test_case": "Partial message delivery attack",
+          "detailed_procedure": "- Send a batch of related bridge messages from Chain A (e.g., multiple lock operations).\n- Selectively relay only some messages from the batch to Chain B while withholding others.\n- Monitor the state consistency on Chain B and verify if partial delivery creates exploitable conditions.\n- Test scenarios where the withheld messages are delivered much later or never delivered.",
+          "pass_fail_criteria": "Partial message delivery should not create exploitable states or allow double-spending. Each message should be independently valid, or the system should have mechanisms to handle incomplete batches safely. Users should not lose funds due to partial delivery scenarios."
+        },
+        {
+          "id": "BRIDGE-CMO-03",
+          "test_case": "Message dependency chain attack",
+          "detailed_procedure": "- Create a sequence of dependent bridge operations (e.g., lock → mint → burn → unlock).\n- Attempt to relay messages out of dependency order or skip intermediate messages.\n- Test if the bridge can be put into an inconsistent state by breaking the dependency chain.",
+          "pass_fail_criteria": "Bridge maintains consistency even when messages arrive out of dependency order. Either strict ordering is enforced, or the system gracefully handles dependency violations without fund loss or state corruption."
+        }
+      ]
+    }
+  ]
+}
