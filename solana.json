@@ -1,0 +1,206 @@
+{
+  "tag": "Solana",
+  "categories": [
+    {
+      "category": "Common",
+      "test_cases": [
+        {
+          "id": "Solana-Common-01",
+          "name": "Should check for the correct signers of instructions",
+          "detailed_procedure": "• Attempt to send the instruction from a valid signer and ensure it succeeds.\n• Attempt to send the instruction from an invalid signer and ensure it fails.",
+          "pass_fail_criteria": "The instruction execution should only succeed when the correct signer is present; it must reject unauthorized signers."
+        },
+        {
+          "id": "Solana-Common-02",
+          "name": "Should check for the correct ownership of accounts",
+          "detailed_procedure": "• Not Started in an account that is owned by the correct owner and expect success.\n• Not Started in an account with the wrong owner and expect the instruction to fail.",
+          "pass_fail_criteria": "The program must validate the `account.owner` field. Attempts to use incorrectly owned accounts should fail."
+        },
+        {
+          "id": "Solana-Common-03",
+          "name": "Should not perform arbitrary CPIs",
+          "detailed_procedure": "• Attempt to invoke a whitelisted instruction from an allowed program; confirm success.\n• Attempt to invoke an unauthorized program or use the CPI in a way the business logic disallows; confirm it fails.",
+          "pass_fail_criteria": "The program only permits CPIs to expected addresses or instructions. Unexpected CPIs should revert or error out."
+        },
+        {
+          "id": "Solana-Common-04",
+          "name": "Should ensure the same account is not passed more than once as a mutable parameter to an instruction",
+          "detailed_procedure": "• Attempt to pass the same account as two separate mutable parameters in the instruction.\n• Observe if the program correctly fails or rejects the transaction.",
+          "pass_fail_criteria": "The instruction should fail or detect duplicate mutable accounts, preventing potential aliasing issues."
+        },
+        {
+          "id": "Solana-Common-05",
+          "name": "Should implement safe initialization through constraints or key() checks (front-running initialization)",
+          "detailed_procedure": "• Create an account using the program's initialization flow.\n• Attempt a second initialization on the same account to see if it blocks front-running or re-initialization.\n• For Anchor programs, focus on init-if-needed accounts.",
+          "pass_fail_criteria": "The program must verify the account is uninitialized or belongs to the correct party. Re-initialization attempts should fail."
+        },
+        {
+          "id": "Solana-Common-06",
+          "name": "Accounts should be reloaded after CPIs when its data is re-utilized within the same scope",
+          "detailed_procedure": "• Execute an instruction that performs a CPI modifying a shared account.\n• Without reloading, attempt to read the account data in the same instruction scope.",
+          "pass_fail_criteria": "The program either reloads account data or fails if it attempts to read stale data. Correct practice is to refresh data from memory."
+        },
+        {
+          "id": "Solana-Common-07",
+          "name": "Multiplications should occur before divisions",
+          "detailed_procedure": "• Review arithmetic logic for interest calculations, splits, or distributions.\n• Confirm multiplication happens before division whenever possible to preserve precision.",
+          "pass_fail_criteria": "Math sequences are carefully ordered (e.g., `(a * b) / c` instead of `a * (b / c)` or `a / c * b` unless intentionally desired)."
+        },
+        {
+          "id": "Solana-Common-08",
+          "name": "Must not divide by zero (0)",
+          "detailed_procedure": "• Attempt an instruction that could lead to dividing by zero. Provide a zero value in the relevant field if possible.\n• Observe if the program gracefully rejects or reverts.",
+          "pass_fail_criteria": "The program should revert or otherwise handle the zero-denominator scenario without panicking or producing incorrect results."
+        },
+        {
+          "id": "Solana-Common-09",
+          "name": "Should enforce rounding down to prevent precision loss abuse",
+          "detailed_procedure": "• Check relevant math sections dealing with fractions or divisions.\n• Confirm that the final results are floored (rounded down) instead of rounding up, unless the design specifies otherwise.",
+          "pass_fail_criteria": "Rounding down ensures no inflation of values beyond what integer math should allow."
+        },
+        {
+          "id": "Solana-Common-10",
+          "name": "Should enforce `checked` arithmetic operations in order to prevent Arithmetic Under/Overflows",
+          "detailed_procedure": "• Review code for explicit `checked_add`, `checked_sub`, `checked_mul`, etc.\n• Confirm that safe arithmetic methods are used instead of raw `+`, `-`, `*` unless validated or impossible to overflow.",
+          "pass_fail_criteria": "All arithmetic that can exceed typical bounds uses checked operations or includes explicit boundary checks."
+        },
+        {
+          "id": "Solana-Common-11",
+          "name": "Cargo.toml should enforce `overflow-checks = true`",
+          "detailed_procedure": "• Open `Cargo.toml`.\n• Locate the `[profile.release]` section.\n• Confirm `overflow-checks = true` is set.",
+          "pass_fail_criteria": "The Solana program's release build includes checks for arithmetic overflows, preventing silent wrap-around."
+        },
+        {
+          "id": "Solana-Common-12",
+          "name": "Accounts should be properly closed",
+          "detailed_procedure": "• Initialize an account and fund it with lamports.\n• Call the program instruction to close the account, passing in the expected recipient.\n• Verify that the account is zeroed out and funds are credited to the recipient.",
+          "pass_fail_criteria": "After closure, the account has 0 lamports and no data. The recipient receives the closed account's balance."
+        },
+        {
+          "id": "Solana-Common-13",
+          "name": "Account Data must match the expected set of values",
+          "detailed_procedure": "• Create or modify an account with correct data layout.\n• Attempt to process an account with malformed or partial data layout.",
+          "pass_fail_criteria": "Properly formatted account data is accepted; malformed data should cause the program to fail or produce an error."
+        },
+        {
+          "id": "Solana-Common-14",
+          "name": "Should use `realloc` correctly when reallocating account's data size",
+          "detailed_procedure": "• Invoke the instruction that changes an account's data length via `realloc`.\n• Check if the new data fields are appended or removed as intended, and old data remains intact if needed.",
+          "pass_fail_criteria": "Data reallocation preserves existing fields, extends or shrinks properly, and does not corrupt memory beyond new bounds."
+        },
+        {
+          "id": "Solana-Common-15",
+          "name": "Should enforce multi-step authority transfer",
+          "detailed_procedure": "• Attempt to change authority in a single step if the program expects a multi-step process.\n• Confirm that direct single-step transfer is denied or fails.\n• Perform the correct multi-step process and ensure it succeeds.",
+          "pass_fail_criteria": "The program should require the authority handover to follow a multi-step handshake or transitional approach if that is the design."
+        },
+        {
+          "id": "Solana-Common-16",
+          "name": "Check `remaining_accounts`",
+          "detailed_procedure": "• Call an instruction with additional accounts in `remaining_accounts` that the program doesn't expect.\n• Check how the program reacts (ignore them or handle them properly).",
+          "pass_fail_criteria": "The program either rejects unexpected accounts or ignores them safely. No hidden logic is triggered."
+        },
+        {
+          "id": "Solana-Common-17",
+          "name": "Check for Account type cosplay",
+          "detailed_procedure": "• Try passing a disguised account that doesn't match the real account data layout or owned by the correct program ID.\n• Confirm the program fails or rejects it.",
+          "pass_fail_criteria": "The program verifies the account's discriminator, ownership, or layout, preventing a fake account from being used as if it's valid."
+        },
+        {
+          "id": "Solana-Common-18",
+          "name": "PDA sharing must not happen",
+          "detailed_procedure": "• Inspect code that creates or uses PDAs for distinct data.\n• Attempt to reuse the same seeds for different accounts, verifying if the program blocks or overwrites data incorrectly.",
+          "pass_fail_criteria": "The program enforces unique seeds or handles each PDA separately. No unintentional data collisions or overwrites."
+        },
+        {
+          "id": "Solana-Common-19",
+          "name": "Users must not be able to provide PDA bumps",
+          "detailed_procedure": "• Try to supply a custom bump seed as an input parameter to an instruction, forging a different address than the program expects.",
+          "pass_fail_criteria": "The program should generate or verify PDAs internally, not trust user-supplied seeds/bump."
+        },
+        {
+          "id": "Solana-Common-20",
+          "name": "Should not unwrap None values",
+          "detailed_procedure": "• Review code for `unwrap()` or `expect()` usage on `Option<T>`.\n• Confirm that each usage is preceded by checks ensuring the `Option` is `Some`.",
+          "pass_fail_criteria": "No unguarded `.unwrap()` calls that could panic if `None` is encountered. All potential None states are handled gracefully."
+        },
+        {
+          "id": "Solana-Common-21",
+          "name": "Should check for arrays out of bounds",
+          "detailed_procedure": "• Inspect code for direct indexing of arrays or slices.\n• Attempt passing a smaller array than the index usage expects to see if the program checks boundaries.",
+          "pass_fail_criteria": "The program checks slice length or uses safe array indexing methods (`.get()`) to avoid runtime panics."
+        }
+      ]
+    },
+    {
+      "category": "Performance and CU optimization",
+      "test_cases": [
+        {
+          "id": "Solana-Performance-01",
+          "test_case": "Passed accounts have correct mutability",
+          "detailed_procedure": "Inspect the code and verify the Anchor mutability modifiers.",
+          "pass_fail_criteria": "Passed accounts must have correct mutability (`mut` should be set for writable accounts only)."
+        },
+        {
+          "id": "Solana-Performance-02",
+          "test_case": "All accounts defined in instruction context are used",
+          "detailed_procedure": "Inspect the code and verify, that all required accounts are actully used for reading or writing.",
+          "pass_fail_criteria": "All required account must be used for reading or writing."
+        },
+        {
+          "id": "Solana-Performance-03",
+          "test_case": "Floating point operations are avoided",
+          "detailed_procedure": "Inspect the code and verify that floating point operations are avoided.",
+          "pass_fail_criteria": "Floating point operations are avoided and replace by fixed integer arithmetic."
+        },
+        {
+          "id": "Solana-Performance-04",
+          "test_case": "The account size is correctly calculated",
+          "detailed_procedure": "Inspect the code and calculate the space needed to store account data.",
+          "pass_fail_criteria": "The calculated space must correspond to the data to be stored. Dynamic fields such as `Vec<T>` or String must be handled correctly. For Anchor account, the space must also include space for the account discriminant (usually 8 bytes, however the discriminant size can be modified in newer Anchor versions."
+        },
+        {
+          "id": "Solana-Performance-05",
+          "test_case": "Reuse stored PDA bump rather than recalculating them",
+          "detailed_procedure": "Inspect the code and verify, if the code reuses stored bumps instead of recalculating them.",
+          "pass_fail_criteria": "Program reuses stored bumps instead of recalculating them."
+        }
+      ]
+    },
+    {
+      "category": "SPL Tokens",
+      "test_cases": [
+        {
+          "id": "Solana-SPL-tokens-01",
+          "test_case": "Legacy Token and Token 2022 programs are correctly supported",
+          "detailed_procedure": "Invoke instructions using both legacy and Token 2022 programs. Verify it is possible to use different programs in one instruction in case multiple token accounts are used.",
+          "pass_fail_criteria": "If the program should support both SPL token standards, the program must allow passing both legacy and Token 2022 programs. If an instruction handles multiple token accounts, the program must allow to pass correct token program for each account."
+        },
+        {
+          "id": "Solana-SPL-tokens-02",
+          "test_case": "Token 2022 extensions are validated",
+          "detailed_procedure": "Inspect the code and verify that dangerous or high-risk extensions are explicitly prohibited. The extensions `PermanentDelegate`, `TransferFee`, `Non-transferable`, `Pausable`, `TransferHook` and `Confidential Transfers` may introduce unexpected risk.",
+          "pass_fail_criteria": "Token extensions are validated and high-risk extensions are explicitly disallowed."
+        },
+        {
+          "id": "Solana-SPL-tokens-03",
+          "test_case": "The PermanentDelegate extension is correctly validated",
+          "detailed_procedure": "Inspect the code and verify, that the program correctly accounts for the fact that tokens can be transferred from protected vault/burned by a delegate at any time. Important: for example PYUSD stable coin has this extension enabled, so prohibiting this extension makes support of PYUSD impossible.",
+          "pass_fail_criteria": "The PermanentDelegate extension and the possiblity to transfer or burn locked tokens does not compromise the correct program function."
+        },
+        {
+          "id": "Solana-SPL-tokens-04",
+          "test_case": "The TransferFee is correctly taken into account",
+          "detailed_procedure": "Attempt to use a token with TransferFee extension and verify, that the transferred fee does not introduce data inconsistencies or does not cause a denial of service.",
+          "pass_fail_criteria": "The TransferFee is correctly calculated and taken into account in the program logic."
+        },
+        {
+          "id": "Solana-SPL-tokens-05",
+          "test_case": "TransferHook program cannot be invoked directly",
+          "detailed_procedure": "Inspect the code and verify, that the TransferHook program checks the `is_tranferring` flag to allow invocation only from the Token2022 program.",
+          "pass_fail_criteria": "The TransferHook program checks the `is_transferring` flag."
+        }
+      ]
+    }
+  ]
+}
