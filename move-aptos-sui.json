@@ -1,0 +1,74 @@
+{
+  "protocol": "Move-based Chains Security Tests",
+  "tags": [
+    {
+      "tag": "Move language generic test cases",
+      "test_cases": [
+        {
+          "id": "MOVE-MOV-01",
+          "test_case": "Object-ownership check",
+          "detailed_procedure": "Mint an object<T> for Account A. From Account B, call a state-changing entry function that requires ownership, passing A’s object.",
+          "pass_fail_criteria": "Transaction should abort because object::owner(&obj) ≠ address_of(&signer)."
+        },
+        {
+          "id": "MOVE-MOV-02",
+          "test_case": "Over-exposed public function",
+          "detailed_procedure": "Find a function marked public (not entry, not public(friend)) that mutates state. Invoke it from an unrelated module or script.",
+          "pass_fail_criteria": "Call should be rejected; any successful state change is a failure."
+        },
+        {
+          "id": "MOVE-MOV-03",
+          "test_case": "Generic-type mismatch",
+          "detailed_procedure": "Select a public function generic over T (e.g., deposit<T>). Prepare Coin<A> and Coin<B>. Call once with T = A & Coin<A>, then again with T = A but pass Coin<B>.",
+          "pass_fail_criteria": "Mismatch should be detected and the transaction reverted; accepting Coin<B> as Coin<A> is a failure."
+        },
+        {
+          "id": "MOVE-MOV-04",
+          "test_case": "Ability misuse (copy / drop / store)",
+          "detailed_procedure": "Locate a struct with overly permissive abilities. Attempt to exploit those abilities: clone, silent-drop, or move_to global storage.",
+          "pass_fail_criteria": "Exploit should be blocked; if it executes successfully, the struct's abilities are misconfigured."
+        }
+      ]
+    },
+    {
+      "tag": "Aptos ecosystem specific test cases",
+      "test_cases": [
+        {
+          "id": "MOVE-APT-01",
+          "test_case": "Resource-group collateral transfer",
+          "detailed_procedure": "Store unrelated resources X and Y in the same object account. Transfer only X.",
+          "pass_fail_criteria": "Resource Y is moved together with X, showing that keeping them in the same object forces joint movement. Transaction should abort when that behaviour is not desired."
+        },
+        {
+          "id": "MOVE-APT-02",
+          "test_case": "One-shot capability leak",
+          "detailed_procedure": "Capture a ConstructorRef or MintCapability. Attempt to store, transfer, or reuse the capability before it is consumed.",
+          "pass_fail_criteria": "Transaction should abort; persisting or reusing the capability is a failure."
+        }
+      ]
+    },
+    {
+      "tag": "Sui ecosystem specific test cases",
+      "test_cases": [
+        {
+          "id": "MOVE-SUI-01",
+          "test_case": "Shared-object privilege leak",
+          "detailed_procedure": "Convert a privileged object into a shared one using share_object. From an unauthorized account, call a function that mutates the shared object.",
+          "pass_fail_criteria": "Transaction should abort; unauthorized caller must not be able to mutate the object."
+        },
+        {
+          "id": "MOVE-SUI-02",
+          "test_case": "Wrong module-init visibility",
+          "detailed_procedure": "Declare a public init(ctx: &mut TxContext) function in the module.",
+          "pass_fail_criteria": "Verifier must reject the module; init must be private."
+        },
+        {
+          "id": "MOVE-SUI-03",
+          "test_case": "Shared-object version mismatch after upgrade",
+          "detailed_procedure": "Deploy v1 and create shared object S. Upgrade the package to v2. Call a v2 entry function using the v1 instance of S.",
+          "pass_fail_criteria": "If the object was not version-compatible, transaction should abort with a clear version mismatch error."
+        }
+      ]
+    }
+  ]
+}
