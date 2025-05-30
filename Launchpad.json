@@ -1,0 +1,785 @@
+{
+  "protocol": "Launchpad and Token Sale",
+  "tags": [
+    {
+      "tag": "Fair Launch",
+      "test_cases": [
+        {
+          "id": "LP-FL-01",
+          "test_case": "No pre-mint or pre-allocation",
+          "detailed_procedure": "Inspect the token contract’s initial supply and allocation before the sale.",
+          "pass_fail_criteria": "Pass if no tokens are minted or allocated; fail otherwise."
+        },
+        {
+          "id": "LP-FL-02",
+          "test_case": "Equal opportunity for participants",
+          "detailed_procedure": "Simulate multiple participants purchasing tokens simultaneously.",
+          "pass_fail_criteria": "Pass if distribution is equitable; fail if bias detected."
+        },
+        {
+          "id": "LP-FL-03",
+          "test_case": "No hidden advantages",
+          "detailed_procedure": "Check for any privileged functions or roles that allow early access.",
+          "pass_fail_criteria": "Pass if no such functions exist; fail otherwise."
+        },
+        {
+          "id": "LP-FL-04",
+          "test_case": "Total supply correctly set",
+          "detailed_procedure": "Verify that the total supply is set to zero before the sale starts.",
+          "pass_fail_criteria": "Pass if total supply is zero; fail otherwise."
+        },
+        {
+          "id": "LP-FL-05",
+          "test_case": "No privileged minting functions",
+          "detailed_procedure": "Check for any functions allowing privileged users to mint tokens outside the sale.",
+          "pass_fail_criteria": "Pass if no such functions exist; fail otherwise."
+        },
+        {
+          "id": "LP-FL-06",
+          "test_case": "Fair distribution mechanism",
+          "detailed_procedure": "Test that the sale contract distributes tokens proportionally to contributions.",
+          "pass_fail_criteria": "Pass if distribution is proportional; fail otherwise."
+        },
+        {
+          "id": "LP-FL-07",
+          "test_case": "No backdoors or special functions",
+          "detailed_procedure": "Inspect the contract for any hidden functions altering distribution.",
+          "pass_fail_criteria": "Pass if no backdoors exist; fail otherwise."
+        },
+        {
+          "id": "LP-FL-08",
+          "test_case": "Zero initial supply",
+          "detailed_procedure": "Verify that the token contract is deployed with zero initial supply.",
+          "pass_fail_criteria": "Pass if initial supply is zero; fail otherwise."
+        },
+        {
+          "id": "LP-FL-09",
+          "test_case": "No pre-minted tokens for team/advisors",
+          "detailed_procedure": "Check that no tokens are pre-minted for team or advisors.",
+          "pass_fail_criteria": "Pass if no pre-minted tokens exist; fail otherwise."
+        },
+        {
+          "id": "LP-FL-10",
+          "test_case": "Unsold tokens burned/locked",
+          "detailed_procedure": "Test that unsold tokens are burned or locked post-sale.",
+          "pass_fail_criteria": "Pass if unsold tokens are handled correctly; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Dutch Auction",
+      "test_cases": [
+        {
+          "id": "LP-DA-01",
+          "test_case": "Price decreases per schedule",
+          "detailed_procedure": "Start the auction and monitor price at regular intervals.",
+          "pass_fail_criteria": "Pass if price decreases as defined; fail otherwise."
+        },
+        {
+          "id": "LP-DA-02",
+          "test_case": "Auction stops on purchase",
+          "detailed_procedure": "Have a participant bid at the current price and verify auction termination.",
+          "pass_fail_criteria": "Pass if auction stops and tokens are allocated; fail otherwise."
+        },
+        {
+          "id": "LP-DA-03",
+          "test_case": "Prevents front-running",
+          "detailed_procedure": "Attempt to manipulate transaction ordering to buy at a lower price.",
+          "pass_fail_criteria": "Pass if manipulation is prevented; fail otherwise."
+        },
+        {
+          "id": "LP-DA-04",
+          "test_case": "Correct price decrement logic",
+          "detailed_procedure": "Verify that the price decrement follows the defined schedule without errors.",
+          "pass_fail_criteria": "Pass if decrement logic is correct; fail otherwise."
+        },
+        {
+          "id": "LP-DA-05",
+          "test_case": "Hard cap enforcement",
+          "detailed_procedure": "Test that the auction stops when the hard cap is reached.",
+          "pass_fail_criteria": "Pass if auction stops at hard cap; fail otherwise."
+        },
+        {
+          "id": "LP-DA-06",
+          "test_case": "Handles multiple simultaneous bids",
+          "detailed_procedure": "Simulate multiple bids at the same price and verify correct allocation.",
+          "pass_fail_criteria": "Pass if allocations are correct; fail otherwise."
+        },
+        {
+          "id": "LP-DA-07",
+          "test_case": "No price manipulation via large bids",
+          "detailed_procedure": "Attempt to manipulate price by placing excessively large bids.",
+          "pass_fail_criteria": "Pass if manipulation is prevented; fail otherwise."
+        },
+        {
+          "id": "LP-DA-08",
+          "test_case": "Reserve price enforcement",
+          "detailed_procedure": "Test that the auction stops if the price reaches the reserve price with no bids.",
+          "pass_fail_criteria": "Pass if auction stops at reserve price; fail otherwise."
+        },
+        {
+          "id": "LP-DA-09",
+          "test_case": "Only authorized auction modifications",
+          "detailed_procedure": "Ensure only authorized accounts can modify auction parameters.",
+          "pass_fail_criteria": "Pass if modifications are restricted; fail otherwise."
+        },
+        {
+          "id": "LP-DA-10",
+          "test_case": "Correct final price calculation",
+          "detailed_procedure": "Verify that the final price reflects the last accepted bid or reserve price.",
+          "pass_fail_criteria": "Pass if final price is correct; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Bonding Curve",
+      "test_cases": [
+        {
+          "id": "LP-BC-01",
+          "test_case": "Price increases with supply",
+          "detailed_procedure": "Purchase tokens incrementally and verify price adjustments per the curve.",
+          "pass_fail_criteria": "Pass if price follows the curve; fail otherwise."
+        },
+        {
+          "id": "LP-BC-02",
+          "test_case": "Correct token minting",
+          "detailed_procedure": "Verify the number of tokens minted matches the amount paid.",
+          "pass_fail_criteria": "Pass if token amount is correct; fail otherwise."
+        },
+        {
+          "id": "LP-BC-03",
+          "test_case": "Prevents curve manipulation",
+          "detailed_procedure": "Attempt to exploit the curve by rapid buy/sell transactions.",
+          "pass_fail_criteria": "Pass if manipulation fails; fail if it succeeds."
+        },
+        {
+          "id": "LP-BC-04",
+          "test_case": "Correct curve formula implementation",
+          "detailed_procedure": "Verify that the bonding curve formula is implemented without errors.",
+          "pass_fail_criteria": "Pass if formula is correct; fail otherwise."
+        },
+        {
+          "id": "LP-BC-05",
+          "test_case": "Resistant to front-running",
+          "detailed_procedure": "Test that the curve is resistant to front-running attacks via transaction ordering.",
+          "pass_fail_criteria": "Pass if front-running is prevented; fail otherwise."
+        },
+        {
+          "id": "LP-BC-06",
+          "test_case": "Immutable curve parameters",
+          "detailed_procedure": "Ensure curve parameters (e.g., slope, initial price) cannot be altered post-deployment.",
+          "pass_fail_criteria": "Pass if parameters are immutable; fail otherwise."
+        },
+        {
+          "id": "LP-BC-07",
+          "test_case": "Handles large transactions",
+          "detailed_procedure": "Test large buy/sell transactions to ensure curve stability.",
+          "pass_fail_criteria": "Pass if transactions are handled correctly; fail otherwise."
+        },
+        {
+          "id": "LP-BC-08",
+          "test_case": "Monotonic price behavior",
+          "detailed_procedure": "Verify that the price always increases with supply and decreases with burns.",
+          "pass_fail_criteria": "Pass if price behavior is monotonic; fail otherwise."
+        },
+        {
+          "id": "LP-BC-09",
+          "test_case": "Safe math operations",
+          "detailed_procedure": "Ensure safe math libraries are used to prevent overflow/underflow.",
+          "pass_fail_criteria": "Pass if safe math is implemented; fail otherwise."
+        },
+        {
+          "id": "LP-BC-10",
+          "test_case": "Correct burn mechanism",
+          "detailed_procedure": "Test that burning tokens decreases supply and adjusts price correctly.",
+          "pass_fail_criteria": "Pass if burn adjusts price per curve; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Whitelisted Sale",
+      "test_cases": [
+        {
+          "id": "LP-WS-01",
+          "test_case": "Only whitelisted addresses can buy",
+          "detailed_procedure": "Attempt to purchase with a non-whitelisted address.",
+          "pass_fail_criteria": "Pass if purchase fails; fail if it succeeds."
+        },
+        {
+          "id": "LP-WS-02",
+          "test_case": "Whitelisted addresses can buy",
+          "detailed_procedure": "Add an address to the whitelist and attempt to purchase.",
+          "pass_fail_criteria": "Pass if purchase succeeds; fail otherwise."
+        },
+        {
+          "id": "LP-WS-03",
+          "test_case": "Whitelist management correctness",
+          "detailed_procedure": "Test adding and removing addresses from the whitelist.",
+          "pass_fail_criteria": "Pass if management functions work correctly; fail otherwise."
+        },
+        {
+          "id": "LP-WS-04",
+          "test_case": "Secure whitelist storage",
+          "detailed_procedure": "Ensure whitelist data is stored securely and not publicly accessible.",
+          "pass_fail_criteria": "Pass if storage is secure; fail otherwise."
+        },
+        {
+          "id": "LP-WS-05",
+          "test_case": "No bypass via direct transfers",
+          "detailed_procedure": "Attempt to bypass whitelist by sending funds directly to the contract.",
+          "pass_fail_criteria": "Pass if bypass fails; fail if it succeeds."
+        },
+        {
+          "id": "LP-WS-06",
+          "test_case": "Authorized whitelist updates",
+          "detailed_procedure": "Ensure only authorized accounts can update the whitelist.",
+          "pass_fail_criteria": "Pass if updates are restricted; fail otherwise."
+        },
+        {
+          "id": "LP-WS-07",
+          "test_case": "Event emission for whitelist changes",
+          "detailed_procedure": "Verify that events are emitted for whitelist additions/removals.",
+          "pass_fail_criteria": "Pass if events are emitted; fail otherwise."
+        },
+        {
+          "id": "LP-WS-08",
+          "test_case": "No duplicate whitelist entries",
+          "detailed_procedure": "Attempt to add the same address to the whitelist multiple times.",
+          "pass_fail_criteria": "Pass if duplicates are prevented; fail otherwise."
+        },
+        {
+          "id": "LP-WS-09",
+          "test_case": "Whitelist capacity handling",
+          "detailed_procedure": "Test adding a large number of addresses to the whitelist.",
+          "pass_fail_criteria": "Pass if capacity is handled correctly; fail otherwise."
+        },
+        {
+          "id": "LP-WS-10",
+          "test_case": "No whitelist bypass via delegatecall",
+          "detailed_procedure": "Attempt to bypass whitelist using delegatecall to another contract.",
+          "pass_fail_criteria": "Pass if bypass is prevented; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Vesting Logic",
+      "test_cases": [
+        {
+          "id": "LP-VL-01",
+          "test_case": "Tokens locked during vesting",
+          "detailed_procedure": "Attempt to transfer vested tokens before the vesting period ends.",
+          "pass_fail_criteria": "Pass if transfer fails; fail if it succeeds."
+        },
+        {
+          "id": "LP-VL-02",
+          "test_case": "Tokens released post-vesting",
+          "detailed_procedure": "Wait until after the vesting period and attempt to transfer tokens.",
+          "pass_fail_criteria": "Pass if transfer succeeds; fail otherwise."
+        },
+        {
+          "id": "LP-VL-03",
+          "test_case": "Correct vesting schedule",
+          "detailed_procedure": "Check releasable token amounts at various points during vesting.",
+          "pass_fail_criteria": "Pass if amounts match the schedule; fail otherwise."
+        },
+        {
+          "id": "LP-VL-04",
+          "test_case": "No unauthorized access to vested tokens",
+          "detailed_procedure": "Attempt to access vested tokens with an unauthorized account.",
+          "pass_fail_criteria": "Pass if access is denied; fail otherwise."
+        },
+        {
+          "id": "LP-VL-05",
+          "test_case": "Correct partial releases",
+          "detailed_procedure": "Test partial releases if allowed by the vesting schedule.",
+          "pass_fail_criteria": "Pass if partial releases are correct; fail otherwise."
+        },
+        {
+          "id": "LP-VL-06",
+          "test_case": "Immutable vesting schedule",
+          "detailed_procedure": "Ensure the vesting schedule cannot be altered post-deployment.",
+          "pass_fail_criteria": "Pass if schedule is immutable; fail otherwise."
+        },
+        {
+          "id": "LP-VL-07",
+          "test_case": "Event emission for vesting releases",
+          "detailed_procedure": "Verify that events are emitted for token releases.",
+          "pass_fail_criteria": "Pass if events are emitted; fail otherwise."
+        },
+        {
+          "id": "LP-VL-08",
+          "test_case": "Handles multiple beneficiaries",
+          "detailed_procedure": "Test vesting for multiple beneficiaries with different schedules.",
+          "pass_fail_criteria": "Pass if schedules are handled correctly; fail otherwise."
+        },
+        {
+          "id": "LP-VL-09",
+          "test_case": "No premature termination",
+          "detailed_procedure": "Attempt to terminate vesting early and verify it fails.",
+          "pass_fail_criteria": "Pass if termination is prevented; fail otherwise."
+        },
+        {
+          "id": "LP-VL-10",
+          "test_case": "Safe token transfers",
+          "detailed_procedure": "Ensure vested tokens are transferred safely without loss.",
+          "pass_fail_criteria": "Pass if transfers are safe; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Cliff / Linear Vesting",
+      "test_cases": [
+        {
+          "id": "LP-CV-01",
+          "test_case": "No release before cliff",
+          "detailed_procedure": "Attempt to claim tokens before the cliff period ends.",
+          "pass_fail_criteria": "Pass if claim fails; fail if it succeeds."
+        },
+        {
+          "id": "LP-CV-02",
+          "test_case": "Correct linear release post-cliff",
+          "detailed_procedure": "Check releasable amounts at intervals after the cliff.",
+          "pass_fail_criteria": "Pass if amounts match linear schedule; fail otherwise."
+        },
+        {
+          "id": "LP-CV-03",
+          "test_case": "Cliff period enforcement",
+          "detailed_procedure": "Verify that no tokens are released exactly at the cliff boundary.",
+          "pass_fail_criteria": "Pass if no release occurs before cliff; fail otherwise."
+        },
+        {
+          "id": "LP-CV-04",
+          "test_case": "Correct cliff duration",
+          "detailed_procedure": "Test that the cliff duration is enforced as configured.",
+          "pass_fail_criteria": "Pass if duration is correct; fail otherwise."
+        },
+        {
+          "id": "LP-CV-05",
+          "test_case": "Linear vesting calculation accuracy",
+          "detailed_procedure": "Verify linear vesting calculations over multiple intervals.",
+          "pass_fail_criteria": "Pass if calculations are accurate; fail otherwise."
+        },
+        {
+          "id": "LP-CV-06",
+          "test_case": "No over-claiming post-cliff",
+          "detailed_procedure": "Attempt to claim more tokens than allowed post-cliff.",
+          "pass_fail_criteria": "Pass if over-claiming is prevented; fail otherwise."
+        },
+        {
+          "id": "LP-CV-07",
+          "test_case": "Event emission for cliff and releases",
+          "detailed_procedure": "Ensure events are emitted for cliff expiration and linear releases.",
+          "pass_fail_criteria": "Pass if events are emitted; fail otherwise."
+        },
+        {
+          "id": "LP-CV-08",
+          "test_case": "Handles edge case periods",
+          "detailed_procedure": "Test very short or long cliff and vesting periods.",
+          "pass_fail_criteria": "Pass if edge cases are handled; fail otherwise."
+        },
+        {
+          "id": "LP-CV-09",
+          "test_case": "No schedule manipulation",
+          "detailed_procedure": "Attempt to manipulate cliff or linear vesting schedules.",
+          "pass_fail_criteria": "Pass if manipulation is prevented; fail otherwise."
+        },
+        {
+          "id": "LP-CV-10",
+          "test_case": "Multiple vesting schedules",
+          "detailed_procedure": "Test multiple cliff and linear vesting schedules for different users.",
+          "pass_fail_criteria": "Pass if schedules are handled correctly; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Refundable Crowdsale",
+      "test_cases": [
+        {
+          "id": "LP-RC-01",
+          "test_case": "Refunds issued if goal not met",
+          "detailed_procedure": "Simulate a sale where the funding goal is not reached and request a refund.",
+          "pass_fail_criteria": "Pass if refunds are issued; fail otherwise."
+        },
+        {
+          "id": "LP-RC-02",
+          "test_case": "No refunds if goal is met",
+          "detailed_procedure": "Simulate a successful sale and attempt to request a refund.",
+          "pass_fail_criteria": "Pass if refunds are denied; fail if issued."
+        },
+        {
+          "id": "LP-RC-03",
+          "test_case": "Correct refund amount",
+          "detailed_procedure": "Verify that refunded amounts match contributions.",
+          "pass_fail_criteria": "Pass if amounts are correct; fail otherwise."
+        },
+        {
+          "id": "LP-RC-04",
+          "test_case": "Refunds post-sale only",
+          "detailed_procedure": "Attempt to request refunds before sale ends.",
+          "pass_fail_criteria": "Pass if refunds are denied pre-sale end; fail otherwise."
+        },
+        {
+          "id": "LP-RC-05",
+          "test_case": "Single refund per contributor",
+          "detailed_procedure": "Test that contributors can only request one refund.",
+          "pass_fail_criteria": "Pass if single refund is enforced; fail otherwise."
+        },
+        {
+          "id": "LP-RC-06",
+          "test_case": "No fund drainage via refunds",
+          "detailed_procedure": "Attempt to exploit refund mechanism to drain contract funds.",
+          "pass_fail_criteria": "Pass if drainage is prevented; fail otherwise."
+        },
+        {
+          "id": "LP-RC-07",
+          "test_case": "Handles partial goal achievements",
+          "detailed_procedure": "Test refund calculations for partially achieved funding goals.",
+          "pass_fail_criteria": "Pass if partial refunds are correct; fail otherwise."
+        },
+        {
+          "id": "LP-RC-08",
+          "test_case": "Event emission for refunds",
+          "detailed_procedure": "Verify that events are emitted for refund requests and issuances.",
+          "pass_fail_criteria": "Pass if events are emitted; fail otherwise."
+        },
+        {
+          "id": "LP-RC-09",
+          "test_case": "No unauthorized refund access",
+          "detailed_procedure": "Attempt to request refunds with a non-contributor account.",
+          "pass_fail_criteria": "Pass if access is denied; fail otherwise."
+        },
+        {
+          "id": "LP-RC-10",
+          "test_case": "Refund period enforcement",
+          "detailed_procedure": "Test that refunds are only allowed within the refund period.",
+          "pass_fail_criteria": "Pass if period is enforced; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Per-wallet Cap",
+      "test_cases": [
+        {
+          "id": "LP-PC-01",
+          "test_case": "Enforce per-wallet cap",
+          "detailed_procedure": "Attempt to purchase above the cap from a single wallet.",
+          "pass_fail_criteria": "Pass if purchase fails; fail if it succeeds."
+        },
+        {
+          "id": "LP-PC-02",
+          "test_case": "Caps applied per wallet",
+          "detailed_procedure": "Purchase from multiple wallets and verify individual caps.",
+          "pass_fail_criteria": "Pass if caps are enforced per wallet; fail otherwise."
+        },
+        {
+          "id": "LP-PC-03",
+          "test_case": "Cap reset prevention",
+          "detailed_procedure": "Attempt to reset or bypass the cap through multiple transactions.",
+          "pass_fail_criteria": "Pass if cap remains enforced; fail otherwise."
+        },
+        {
+          "id": "LP-PC-04",
+          "test_case": "Cap across multiple transactions",
+          "detailed_procedure": "Test that the cap is enforced across multiple transactions from the same wallet.",
+          "pass_fail_criteria": "Pass if cap is cumulative; fail otherwise."
+        },
+        {
+          "id": "LP-PC-05",
+          "test_case": "No bypass via contract interactions",
+          "detailed_procedure": "Attempt to bypass cap using a smart contract interaction.",
+          "pass_fail_criteria": "Pass if bypass is prevented; fail otherwise."
+        },
+        {
+          "id": "LP-PC-06",
+          "test_case": "Immutable cap settings",
+          "detailed_procedure": "Ensure cap settings cannot be changed during the sale.",
+          "pass_fail_criteria": "Pass if caps are immutable; fail otherwise."
+        },
+        {
+          "id": "LP-PC-07",
+          "test_case": "Event emission for cap enforcement",
+          "detailed_procedure": "Verify that events are emitted when cap is enforced.",
+          "pass_fail_criteria": "Pass if events are emitted; fail otherwise."
+        },
+        {
+          "id": "LP-PC-08",
+          "test_case": "Handles edge case caps",
+          "detailed_procedure": "Test very low or high cap values for correct enforcement.",
+          "pass_fail_criteria": "Pass if edge cases are handled; fail otherwise."
+        },
+        {
+          "id": "LP-PC-09",
+          "test_case": "No multi-wallet bypass",
+          "detailed_procedure": "Attempt to bypass cap using multiple wallets controlled by one entity.",
+          "pass_fail_criteria": "Pass if bypass is prevented; fail otherwise."
+        },
+        {
+          "id": "LP-PC-10",
+          "test_case": "Consistent cap across functions",
+          "detailed_procedure": "Ensure cap is enforced across all relevant sale functions.",
+          "pass_fail_criteria": "Pass if cap is consistent; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Claimable Allocation",
+      "test_cases": [
+        {
+          "id": "LP-CA-01",
+          "test_case": "Only entitled can claim",
+          "detailed_procedure": "Attempt to claim tokens with a non-participant address.",
+          "pass_fail_criteria": "Pass if claim fails; fail if it succeeds."
+        },
+        {
+          "id": "LP-CA-02",
+          "test_case": "Correct token amount claimed",
+          "detailed_procedure": "Participate in the sale and claim tokens, verifying the amount.",
+          "pass_fail_criteria": "Pass if claimed amount matches allocation; fail otherwise."
+        },
+        {
+          "id": "LP-CA-03",
+          "test_case": "Claim period enforcement",
+          "detailed_procedure": "Attempt to claim tokens outside the designated claim period.",
+          "pass_fail_criteria": "Pass if claim fails; fail if it succeeds."
+        },
+        {
+          "id": "LP-CA-04",
+          "test_case": "No double claims",
+          "detailed_procedure": "Attempt to claim the same allocation multiple times.",
+          "pass_fail_criteria": "Pass if double claims are prevented; fail otherwise."
+        },
+        {
+          "id": "LP-CA-05",
+          "test_case": "Post-sale finalization claims",
+          "detailed_procedure": "Ensure claims are only allowed after sale finalization.",
+          "pass_fail_criteria": "Pass if claims are post-finalization; fail otherwise."
+        },
+        {
+          "id": "LP-CA-06",
+          "test_case": "Event emission for claims",
+          "detailed_procedure": "Verify that events are emitted for successful claims.",
+          "pass_fail_criteria": "Pass if events are emitted; fail otherwise."
+        },
+        {
+          "id": "LP-CA-07",
+          "test_case": "Correct allocation tracking",
+          "detailed_procedure": "Test that allocations are correctly tracked for each participant.",
+          "pass_fail_criteria": "Pass if tracking is accurate; fail otherwise."
+        },
+        {
+          "id": "LP-CA-08",
+          "test_case": "No claim bypass via delegatecall",
+          "detailed_procedure": "Attempt to bypass claim restrictions using delegatecall.",
+          "pass_fail_criteria": "Pass if bypass is prevented; fail otherwise."
+        },
+        {
+          "id": "LP-CA-09",
+          "test_case": "Handles large number of claims",
+          "detailed_procedure": "Simulate a large number of claims to test scalability.",
+          "pass_fail_criteria": "Pass if claims are handled correctly; fail otherwise."
+        },
+        {
+          "id": "LP-CA-10",
+          "test_case": "Safe token distribution",
+          "detailed_procedure": "Ensure claimed tokens are distributed without loss or errors.",
+          "pass_fail_criteria": "Pass if distribution is safe; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Anti-bot Mechanism",
+      "test_cases": [
+        {
+          "id": "LP-AB-01",
+          "test_case": "Detect and prevent bot transactions",
+          "detailed_procedure": "Simulate rapid transactions from a single address to mimic bot behavior.",
+          "pass_fail_criteria": "Pass if bot-like behavior is blocked; fail otherwise."
+        },
+        {
+          "id": "LP-AB-02",
+          "test_case": "Allow legitimate transactions",
+          "detailed_procedure": "Perform normal transactions and verify they are not blocked.",
+          "pass_fail_criteria": "Pass if transactions succeed; fail if blocked."
+        },
+        {
+          "id": "LP-AB-03",
+          "test_case": "Rate limiting effectiveness",
+          "detailed_procedure": "Test rate-limiting mechanisms under high transaction volume.",
+          "pass_fail_criteria": "Pass if limits are enforced; fail otherwise."
+        },
+        {
+          "id": "LP-AB-04",
+          "test_case": "No false positives for users",
+          "detailed_procedure": "Simulate legitimate user behavior with high frequency and verify no blocking.",
+          "pass_fail_criteria": "Pass if legitimate users are not blocked; fail otherwise."
+        },
+        {
+          "id": "LP-AB-05",
+          "test_case": "Prevents multi-wallet bot attacks",
+          "detailed_procedure": "Attempt to use multiple wallets to bypass bot detection.",
+          "pass_fail_criteria": "Pass if bypass is prevented; fail otherwise."
+        },
+        {
+          "id": "LP-AB-06",
+          "test_case": "CAPTCHA or challenge integration",
+          "detailed_procedure": "Verify that CAPTCHA or similar challenges block bots if implemented.",
+          "pass_fail_criteria": "Pass if challenges are effective; fail otherwise."
+        },
+        {
+          "id": "LP-AB-07",
+          "test_case": "Event emission for bot detection",
+          "detailed_procedure": "Ensure events are emitted when bot transactions are blocked.",
+          "pass_fail_criteria": "Pass if events are emitted; fail otherwise."
+        },
+        {
+          "id": "LP-AB-08",
+          "test_case": "Resistant to Sybil attacks",
+          "detailed_procedure": "Simulate a Sybil attack with multiple coordinated accounts.",
+          "pass_fail_criteria": "Pass if attack is detected and prevented; fail otherwise."
+        },
+        {
+          "id": "LP-AB-09",
+          "test_case": "Handles high transaction volumes",
+          "detailed_procedure": "Test bot detection under high transaction volumes.",
+          "pass_fail_criteria": "Pass if detection remains effective; fail otherwise."
+        },
+        {
+          "id": "LP-AB-10",
+          "test_case": "No bypass via contract calls",
+          "detailed_procedure": "Attempt to bypass bot detection using smart contract interactions.",
+          "pass_fail_criteria": "Pass if bypass is prevented; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "KYC/AML Compliance",
+      "test_cases": [
+        {
+          "id": "LP-KC-01",
+          "test_case": "KYC verification required",
+          "detailed_procedure": "Attempt to participate without completing KYC.",
+          "pass_fail_criteria": "Pass if participation is denied; fail if allowed."
+        },
+        {
+          "id": "LP-KC-02",
+          "test_case": "Verified users can participate",
+          "detailed_procedure": "Complete KYC and attempt to participate.",
+          "pass_fail_criteria": "Pass if participation is allowed; fail otherwise."
+        },
+        {
+          "id": "LP-KC-03",
+          "test_case": "KYC data integrity",
+          "detailed_procedure": "Verify that KYC data is securely stored and not manipulable.",
+          "pass_fail_criteria": "Pass if data is secure; fail otherwise."
+        },
+        {
+          "id": "LP-KC-04",
+          "test_case": "No KYC bypass",
+          "detailed_procedure": "Attempt to bypass KYC using direct contract interactions.",
+          "pass_fail_criteria": "Pass if bypass is prevented; fail otherwise."
+        },
+        {
+          "id": "LP-KC-05",
+          "test_case": "Authorized KYC updates",
+          "detailed_procedure": "Ensure only authorized parties can update KYC statuses.",
+          "pass_fail_criteria": "Pass if updates are restricted; fail otherwise."
+        },
+        {
+          "id": "LP-KC-06",
+          "test_case": "Event emission for KYC changes",
+          "detailed_procedure": "Verify that events are emitted for KYC status changes.",
+          "pass_fail_criteria": "Pass if events are emitted; fail otherwise."
+        },
+        {
+          "id": "LP-KC-07",
+          "test_case": "KYC integration with sale",
+          "detailed_procedure": "Test that KYC status is checked for all sale interactions.",
+          "pass_fail_criteria": "Pass if KYC is enforced; fail otherwise."
+        },
+        {
+          "id": "LP-KC-08",
+          "test_case": "Handles large KYC volumes",
+          "detailed_procedure": "Simulate a large number of KYC verifications to test scalability.",
+          "pass_fail_criteria": "Pass if verifications are handled; fail otherwise."
+        },
+        {
+          "id": "LP-KC-09",
+          "test_case": "No data leakage",
+          "detailed_procedure": "Ensure KYC data cannot be accessed by unauthorized parties.",
+          "pass_fail_criteria": "Pass if data is secure; fail otherwise."
+        },
+        {
+          "id": "LP-KC-10",
+          "test_case": "KYC status revocation",
+          "detailed_procedure": "Test that KYC status can be revoked for non-compliant users.",
+          "pass_fail_criteria": "Pass if revocation works; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Smart Contract Security",
+      "test_cases": [
+        {
+          "id": "LP-SS-01",
+          "test_case": "Reentrancy attack prevention",
+          "detailed_procedure": "Attempt a reentrancy attack on buy or claim functions.",
+          "pass_fail_criteria": "Pass if attack fails; fail if it succeeds."
+        },
+        {
+          "id": "LP-SS-02",
+          "test_case": "Arithmetic overflow/underflow",
+          "detailed_procedure": "Test functions with extreme values to check for overflow/underflow.",
+          "pass_fail_criteria": "Pass if handled correctly; fail otherwise."
+        },
+        {
+          "id": "LP-SS-03",
+          "test_case": "Access control enforcement",
+          "detailed_procedure": "Attempt to call restricted functions with unauthorized accounts.",
+          "pass_fail_criteria": "Pass if access is denied; fail if granted."
+        },
+        {
+          "id": "LP-SS-04",
+          "test_case": "No unauthorized fund withdrawal",
+          "detailed_procedure": "Attempt to withdraw funds from the contract with an unauthorized account.",
+          "pass_fail_criteria": "Pass if withdrawal is denied; fail otherwise."
+        },
+        {
+          "id": "LP-SS-05",
+          "test_case": "Event emission for critical actions",
+          "detailed_procedure": "Verify that events are emitted for critical contract actions (e.g., fund transfers).",
+          "pass_fail_criteria": "Pass if events are emitted; fail otherwise."
+        },
+        {
+          "id": "LP-SS-06",
+          "test_case": "No delegatecall vulnerabilities",
+          "detailed_procedure": "Test for vulnerabilities in delegatecall usage.",
+          "pass_fail_criteria": "Pass if no vulnerabilities exist; fail otherwise."
+        },
+        {
+          "id": "LP-SS-07",
+          "test_case": "Pausable contract security",
+          "detailed_procedure": "Ensure only authorized accounts can pause/unpause the contract.",
+          "pass_fail_criteria": "Pass if pausing is restricted; fail otherwise."
+        },
+        {
+          "id": "LP-SS-08",
+          "test_case": "No unchecked external calls",
+          "detailed_procedure": "Verify that external calls are checked for return values.",
+          "pass_fail_criteria": "Pass if calls are checked; fail otherwise."
+        },
+        {
+          "id": "LP-SS-09",
+          "test_case": "Safe token interactions",
+          "detailed_procedure": "Test interactions with non-standard ERC-20 tokens.",
+          "pass_fail_criteria": "Pass if interactions are safe; fail otherwise."
+        },
+        {
+          "id": "LP-SS-10",
+          "test_case": "No self-destruct vulnerabilities",
+          "detailed_procedure": "Ensure the contract cannot be destroyed by unauthorized accounts.",
+          "pass_fail_criteria": "Pass if self-destruct is restricted; fail otherwise."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,590 @@
+{
+  "protocol": "Yield Aggregators / Vaults Security Tests",
+  "tags": [
+    {
+      "tag": "Yearn-style Vault",
+      "test_cases": [
+        {
+          "id": "VAULT-01",
+          "test_case": "Correct deposit and withdrawal",
+          "detailed_procedure": "Deposit a known amount of tokens into the vault, then withdraw the same amount, and verify that the user's balance is restored correctly.",
+          "pass_fail_criteria": "Pass if the user's balance is correctly restored after withdrawal; fail otherwise."
+        },
+        {
+          "id": "VAULT-02",
+          "test_case": "Accounting accuracy",
+          "detailed_procedure": "After multiple deposits and withdrawals, verify that the total supply of vault shares and the underlying asset balance match.",
+          "pass_fail_criteria": "Pass if the accounting is accurate; fail if there's a discrepancy."
+        },
+        {
+          "id": "VAULT-03",
+          "test_case": "Reentrancy prevention",
+          "detailed_procedure": "Attempt to reenter the vault contract during a deposit or withdrawal function call using a malicious contract.",
+          "pass_fail_criteria": "Pass if reentrancy is prevented by a mutex or guard; fail otherwise."
+        },
+        {
+          "id": "VAULT-04",
+          "test_case": "Strategy profit distribution",
+          "detailed_procedure": "Simulate a strategy earning profits, then check if profits are correctly reflected in the vault's balance and distributed to depositors upon withdrawal.",
+          "pass_fail_criteria": "Pass if profits are correctly distributed; fail otherwise."
+        },
+        {
+          "id": "VAULT-05",
+          "test_case": "Emergency shutdown",
+          "detailed_procedure": "Trigger the emergency shutdown function and verify that no new deposits are allowed, but existing depositors can withdraw.",
+          "pass_fail_criteria": "Pass if shutdown prevents deposits and allows withdrawals; fail otherwise."
+        },
+        {
+          "id": "VAULT-06",
+          "test_case": "Access control for administrative functions",
+          "detailed_procedure": "Attempt to call administrative functions (e.g., adding strategies, changing parameters) with a non-authorized account.",
+          "pass_fail_criteria": "Pass if access is denied; fail if access is granted."
+        },
+        {
+          "id": "VAULT-07",
+          "test_case": "Correct interaction with strategies",
+          "detailed_procedure": "Verify that the vault correctly sends and receives funds from strategies as per their specifications.",
+          "pass_fail_criteria": "Pass if interactions are correct; fail otherwise."
+        },
+        {
+          "id": "VAULT-08",
+          "test_case": "No front-running of harvests or rebases",
+          "detailed_procedure": "Attempt to front-run harvest or rebase events to manipulate share pricing or profits.",
+          "pass_fail_criteria": "Pass if front-running is prevented; fail otherwise."
+        },
+        {
+          "id": "VAULT-09",
+          "test_case": "Correct handling of token transfers",
+          "detailed_procedure": "Verify that token transfers within the vault (e.g., to strategies or users) are handled without loss or errors.",
+          "pass_fail_criteria": "Pass if transfers are correct; fail otherwise."
+        },
+        {
+          "id": "VAULT-10",
+          "test_case": "Resilience to strategy failures",
+          "detailed_procedure": "Simulate a strategy failing or losing funds, and verify that the vault remains operational and users can withdraw funds.",
+          "pass_fail_criteria": "Pass if vault remains operational and withdrawals are possible; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Rebase Yield Token",
+      "test_cases": [
+        {
+          "id": "REBASE-01",
+          "test_case": "Correct rebase calculation",
+          "detailed_procedure": "Simulate vault earning yields, trigger a rebase, and verify that the total supply of the rebase token increases proportionally to yields.",
+          "pass_fail_criteria": "Pass if total supply increases correctly; fail otherwise."
+        },
+        {
+          "id": "REBASE-02",
+          "test_case": "User balance preservation",
+          "detailed_procedure": "Hold rebase tokens, trigger a rebase, and verify that the user's proportion of total supply remains unchanged.",
+          "pass_fail_criteria": "Pass if user's share is preserved; fail otherwise."
+        },
+        {
+          "id": "REBASE-03",
+          "test_case": "No front-running of rebase",
+          "detailed_procedure": "Attempt to front-run rebase by depositing or withdrawing just before the event to manipulate balances.",
+          "pass_fail_criteria": "Pass if front-running is prevented; fail otherwise."
+        },
+        {
+          "id": "REBASE-04",
+          "test_case": "Correct handling of token decimals",
+          "detailed_procedure": "Verify that rebase token handles decimal places correctly, especially with assets of differing decimals.",
+          "pass_fail_criteria": "Pass if decimals are handled correctly; fail otherwise."
+        },
+        {
+          "id": "REBASE-05",
+          "test_case": "No loss of funds during rebase",
+          "detailed_procedure": "Check that no funds are lost or duplicated during the rebase process.",
+          "pass_fail_criteria": "Pass if funds are conserved; fail otherwise."
+        },
+        {
+          "id": "REBASE-06",
+          "test_case": "Correct interaction with vault",
+          "detailed_procedure": "Verify that rebase token correctly interacts with vault's deposit and withdrawal functions.",
+          "pass_fail_criteria": "Pass if interactions are correct; fail otherwise."
+        },
+        {
+          "id": "REBASE-07",
+          "test_case": "Rebase frequency and timing",
+          "detailed_procedure": "Ensure rebases occur at the correct frequency and timing as per contract specifications.",
+          "pass_fail_criteria": "Pass if timing is correct; fail otherwise."
+        },
+        {
+          "id": "REBASE-08",
+          "test_case": "Edge cases for rebase",
+          "detailed_procedure": "Test rebases with very small or large yield amounts and minimal or maximal supply.",
+          "pass_fail_criteria": "Pass if edge cases are handled correctly; fail otherwise."
+        },
+        {
+          "id": "REBASE-09",
+          "test_case": "No rebase manipulation",
+          "detailed_procedure": "Attempt to manipulate rebase by rapid deposits/withdrawals before rebase.",
+          "pass_fail_criteria": "Pass if manipulation is prevented; fail otherwise."
+        },
+        {
+          "id": "REBASE-10",
+          "test_case": "Correct event emission",
+          "detailed_procedure": "Verify that appropriate events are emitted during rebase for tracking and transparency.",
+          "pass_fail_criteria": "Pass if events are emitted correctly; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Vault Deposit Logic",
+      "test_cases": [
+        {
+          "id": "DEPOSIT-01",
+          "test_case": "Minimum deposit enforcement",
+          "detailed_procedure": "Attempt to deposit an amount below the minimum deposit threshold.",
+          "pass_fail_criteria": "Pass if deposit is rejected; fail if accepted."
+        },
+        {
+          "id": "DEPOSIT-02",
+          "test_case": "Maximum deposit enforcement",
+          "detailed_procedure": "Attempt to deposit an amount above the maximum deposit limit, if applicable.",
+          "pass_fail_criteria": "Pass if deposit is rejected; fail if accepted."
+        },
+        {
+          "id": "DEPOSIT-03",
+          "test_case": "Correct balance update",
+          "detailed_procedure": "Deposit a known amount and verify that the user's vault share balance increases correctly.",
+          "pass_fail_criteria": "Pass if balance is updated correctly; fail otherwise."
+        },
+        {
+          "id": "DEPOSIT-04",
+          "test_case": "Reentrancy prevention during deposit",
+          "detailed_procedure": "Attempt to reenter the vault during a deposit function call using a malicious contract.",
+          "pass_fail_criteria": "Pass if reentrancy is prevented; fail otherwise."
+        },
+        {
+          "id": "DEPOSIT-05",
+          "test_case": "Correct token transfer",
+          "detailed_procedure": "Verify that deposited tokens are correctly transferred to the vault without loss.",
+          "pass_fail_criteria": "Pass if tokens are transferred correctly; fail otherwise."
+        },
+        {
+          "id": "DEPOSIT-06",
+          "test_case": "Handling of zero deposits",
+          "detailed_procedure": "Attempt to deposit zero tokens and verify that it's rejected or handled as specified.",
+          "pass_fail_criteria": "Pass if zero deposits are handled correctly; fail otherwise."
+        },
+        {
+          "id": "DEPOSIT-07",
+          "test_case": "Deposit with insufficient allowance",
+          "detailed_procedure": "Attempt to deposit more tokens than the user has approved for the vault.",
+          "pass_fail_criteria": "Pass if deposit fails due to insufficient allowance; fail if it succeeds."
+        },
+        {
+          "id": "DEPOSIT-08",
+          "test_case": "Deposit during emergency shutdown",
+          "detailed_procedure": "Attempt to deposit after emergency shutdown has been triggered.",
+          "pass_fail_criteria": "Pass if deposit is rejected; fail if accepted."
+        },
+        {
+          "id": "DEPOSIT-09",
+          "test_case": "Correct emission of deposit events",
+          "detailed_procedure": "Verify that appropriate events are emitted when deposits are made.",
+          "pass_fail_criteria": "Pass if events are emitted correctly; fail otherwise."
+        },
+        {
+          "id": "DEPOSIT-10",
+          "test_case": "No front-running of deposits",
+          "detailed_procedure": "Attempt to front-run a large deposit to manipulate share pricing.",
+          "pass_fail_criteria": "Pass if front-running does not affect pricing unfairly; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Harvest Function Logic",
+      "test_cases": [
+        {
+          "id": "HARVEST-01",
+          "test_case": "Correct yield collection",
+          "detailed_procedure": "Simulate strategies earning yields, trigger harvest, and verify that yields are correctly collected and added to the vault's balance.",
+          "pass_fail_criteria": "Pass if yields are collected correctly; fail otherwise."
+        },
+        {
+          "id": "HARVEST-02",
+          "test_case": "No double-harvesting",
+          "detailed_procedure": "Attempt to harvest multiple times in quick succession.",
+          "pass_fail_criteria": "Pass if only one harvest is effective; fail if multiple harvests occur."
+        },
+        {
+          "id": "HARVEST-03",
+          "test_case": "Reentrancy prevention during harvest",
+          "detailed_procedure": "Attempt to reenter the vault during a harvest function call.",
+          "pass_fail_criteria": "Pass if reentrancy is prevented; fail otherwise."
+        },
+        {
+          "id": "HARVEST-04",
+          "test_case": "Correct accounting after harvest",
+          "detailed_procedure": "After harvest, verify that the vault's accounting reflects the new balance correctly.",
+          "pass_fail_criteria": "Pass if accounting is correct; fail otherwise."
+        },
+        {
+          "id": "HARVEST-05",
+          "test_case": "Harvest frequency enforcement",
+          "detailed_procedure": "Attempt to harvest before the minimum time between harvests has passed.",
+          "pass_fail_criteria": "Pass if harvest is rejected; fail if accepted."
+        },
+        {
+          "id": "HARVEST-06",
+          "test_case": "Correct interaction with strategies",
+          "detailed_procedure": "Verify that during harvest, the vault correctly calls the strategy's harvest function and handles returned funds.",
+          "pass_fail_criteria": "Pass if interactions are correct; fail otherwise."
+        },
+        {
+          "id": "HARVEST-07",
+          "test_case": "No loss of funds during harvest",
+          "detailed_procedure": "Check that no funds are lost during the harvest process.",
+          "pass_fail_criteria": "Pass if funds are conserved; fail otherwise."
+        },
+        {
+          "id": "HARVEST-08",
+          "test_case": "Harvest during emergency shutdown",
+          "detailed_procedure": "Attempt to harvest after emergency shutdown has been triggered.",
+          "pass_fail_criteria": "Pass if harvest is rejected; fail if accepted."
+        },
+        {
+          "id": "HARVEST-09",
+          "test_case": "Correct emission of harvest events",
+          "detailed_procedure": "Verify that appropriate events are emitted when harvest is triggered.",
+          "pass_fail_criteria": "Pass if events are emitted correctly; fail otherwise."
+        },
+        {
+          "id": "HARVEST-10",
+          "test_case": "Handling of strategy losses",
+          "detailed_procedure": "Simulate a strategy reporting losses during harvest and verify that the vault accounts for them correctly.",
+          "pass_fail_criteria": "Pass if losses are accounted for correctly; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Strategy Execution",
+      "test_cases": [
+        {
+          "id": "STRATEGY-01",
+          "test_case": "Only authorized strategies added",
+          "detailed_procedure": "Attempt to add a strategy with a non-authorized account.",
+          "pass_fail_criteria": "Pass if addition is rejected; fail if accepted."
+        },
+        {
+          "id": "STRATEGY-02",
+          "test_case": "Strategies cannot over-withdraw",
+          "detailed_procedure": "Configure a strategy with a set allocation, then attempt to withdraw more than allocated.",
+          "pass_fail_criteria": "Pass if withdrawal is limited to allocated amount; fail otherwise."
+        },
+        {
+          "id": "STRATEGY-03",
+          "test_case": "Correct profit/loss reporting",
+          "detailed_procedure": "Simulate a strategy earning profits or losses, and verify that the vault correctly accounts for them.",
+          "pass_fail_criteria": "Pass if profits/losses are reported correctly; fail otherwise."
+        },
+        {
+          "id": "STRATEGY-04",
+          "test_case": "Strategy pause functionality",
+          "detailed_procedure": "Pause a strategy and verify that no new funds are sent to it, but existing funds can be harvested.",
+          "pass_fail_criteria": "Pass if pause works as expected; fail otherwise."
+        },
+        {
+          "id": "STRATEGY-05",
+          "test_case": "Strategy removal",
+          "detailed_procedure": "Remove a strategy from the vault and verify that no further interactions occur.",
+          "pass_fail_criteria": "Pass if strategy is removed correctly; fail otherwise."
+        },
+        {
+          "id": "STRATEGY-06",
+          "test_case": "No unauthorized strategy modifications",
+          "detailed_procedure": "Attempt to modify strategy parameters with a non-authorized account.",
+          "pass_fail_criteria": "Pass if modifications are rejected; fail otherwise."
+        },
+        {
+          "id": "STRATEGY-07",
+          "test_case": "Correct handling of strategy debt",
+          "detailed_procedure": "If strategies take loans, verify that debts are managed and repaid correctly.",
+          "pass_fail_criteria": "Pass if debts are handled correctly; fail otherwise."
+        },
+        {
+          "id": "STRATEGY-08",
+          "test_case": "Strategy slippage control",
+          "detailed_procedure": "Verify that strategies have slippage controls to prevent losses from price movements.",
+          "pass_fail_criteria": "Pass if slippage is controlled; fail otherwise."
+        },
+        {
+          "id": "STRATEGY-09",
+          "test_case": "Strategy gas efficiency",
+          "detailed_procedure": "Check that strategies are gas-efficient and do not consume excessive gas.",
+          "pass_fail_criteria": "Pass if gas usage is reasonable; fail if excessive."
+        },
+        {
+          "id": "STRATEGY-10",
+          "test_case": "Strategy failure isolation",
+          "detailed_procedure": "Simulate a strategy failure and ensure it does not affect other strategies or vault operations.",
+          "pass_fail_criteria": "Pass if failure is isolated; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Reward Distribution",
+      "test_cases": [
+        {
+          "id": "REWARD-01",
+          "test_case": "Correct distribution of rewards",
+          "detailed_procedure": "Verify that additional rewards (e.g., governance tokens) are distributed proportionally to depositors' shares.",
+          "pass_fail_criteria": "Pass if rewards are distributed proportionally; fail otherwise."
+        },
+        {
+          "id": "REWARD-02",
+          "test_case": "No duplication of rewards",
+          "detailed_procedure": "Ensure that rewards are not duplicated or over-distributed.",
+          "pass_fail_criteria": "Pass if rewards are distributed once; fail otherwise."
+        },
+        {
+          "id": "REWARD-03",
+          "test_case": "Correct calculation of reward rates",
+          "detailed_procedure": "Verify that reward rates are calculated correctly based on vault performance.",
+          "pass_fail_criteria": "Pass if rates are accurate; fail otherwise."
+        },
+        {
+          "id": "REWARD-04",
+          "test_case": "Reward claiming functionality",
+          "detailed_procedure": "Test that users can claim rewards correctly and claimed rewards are removed from pending amounts.",
+          "pass_fail_criteria": "Pass if claiming works as expected; fail otherwise."
+        },
+        {
+          "id": "REWARD-05",
+          "test_case": "Reward distribution during shutdown",
+          "detailed_procedure": "Check if rewards can be distributed or claimed after emergency shutdown.",
+          "pass_fail_criteria": "Pass if handled as per specification; fail otherwise."
+        },
+        {
+          "id": "REWARD-06",
+          "test_case": "No front-running of rewards",
+          "detailed_procedure": "Attempt to front-run reward distribution to gain more rewards.",
+          "pass_fail_criteria": "Pass if front-running is prevented; fail otherwise."
+        },
+        {
+          "id": "REWARD-07",
+          "test_case": "Correct emission of reward events",
+          "detailed_procedure": "Verify that events are emitted when rewards are distributed or claimed.",
+          "pass_fail_criteria": "Pass if events are emitted correctly; fail otherwise."
+        },
+        {
+          "id": "REWARD-08",
+          "test_case": "Handling of multiple reward tokens",
+          "detailed_procedure": "Ensure that multiple reward tokens are distributed correctly.",
+          "pass_fail_criteria": "Pass if all rewards are distributed properly; fail otherwise."
+        },
+        {
+          "id": "REWARD-09",
+          "test_case": "Reward distribution accuracy",
+          "detailed_procedure": "Simulate reward distribution over multiple periods and verify total rewards match expected amounts.",
+          "pass_fail_criteria": "Pass if total rewards are accurate; fail otherwise."
+        },
+        {
+          "id": "REWARD-10",
+          "test_case": "No reward leakage",
+          "detailed_procedure": "Check that no rewards are lost or sent to incorrect addresses.",
+          "pass_fail_criteria": "Pass if all rewards are accounted for; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Auto-compounding",
+      "test_cases": [
+        {
+          "id": "AUTOCOMP-01",
+          "test_case": "Correct reinvestment of yields",
+          "detailed_procedure": "Simulate vault earning yields and verify that they are automatically reinvested into the vault.",
+          "pass_fail_criteria": "Pass if yields are reinvested correctly; fail otherwise."
+        },
+        {
+          "id": "AUTOCOMP-02",
+          "test_case": "No loss of funds during compounding",
+          "detailed_procedure": "Check that no funds are lost during the auto-compounding process.",
+          "pass_fail_criteria": "Pass if funds are conserved; fail otherwise."
+        },
+        {
+          "id": "AUTOCOMP-03",
+          "test_case": "Compounding frequency enforcement",
+          "detailed_procedure": "Ensure compounding occurs at the correct intervals as per contract specifications.",
+          "pass_fail_criteria": "Pass if compounding happens at the right times; fail otherwise."
+        },
+        {
+          "id": "AUTOCOMP-04",
+          "test_case": "Correct compounding logic",
+          "detailed_procedure": "Verify that compounding logic correctly calculates and reinvests yields without errors.",
+          "pass_fail_criteria": "Pass if logic is correct; fail otherwise."
+        },
+        {
+          "id": "AUTOCOMP-05",
+          "test_case": "No reentrancy during compounding",
+          "detailed_procedure": "Attempt to reenter the vault during the compounding function call.",
+          "pass_fail_criteria": "Pass if reentrancy is prevented; fail otherwise."
+        },
+        {
+          "id": "AUTOCOMP-06",
+          "test_case": "Compounding during emergency shutdown",
+          "detailed_procedure": "Check if compounding is disabled after emergency shutdown.",
+          "pass_fail_criteria": "Pass if compounding is halted; fail if it continues."
+        },
+        {
+          "id": "AUTOCOMP-07",
+          "test_case": "Correct emission of compounding events",
+          "detailed_procedure": "Verify that appropriate events are emitted when compounding occurs.",
+          "pass_fail_criteria": "Pass if events are emitted correctly; fail otherwise."
+        },
+        {
+          "id": "AUTOCOMP-08",
+          "test_case": "Handling of large yield amounts",
+          "detailed_procedure": "Simulate very large yields and ensure compounding handles them without overflows.",
+          "pass_fail_criteria": "Pass if large yields are handled correctly; fail otherwise."
+        },
+        {
+          "id": "AUTOCOMP-09",
+          "test_case": "No front-running of compounding",
+          "detailed_procedure": "Attempt to front-run compounding events to manipulate share pricing.",
+          "pass_fail_criteria": "Pass if front-running is prevented; fail otherwise."
+        },
+        {
+          "id": "AUTOCOMP-10",
+          "test_case": "Compounding accuracy over cycles",
+          "detailed_procedure": "Simulate multiple compounding cycles and verify that total growth matches expected returns.",
+          "pass_fail_criteria": "Pass if compounding is accurate; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Emergency Exit Logic",
+      "test_cases": [
+        {
+          "id": "EMERGENCY-01",
+          "test_case": "Emergency shutdown by authorized party",
+          "detailed_procedure": "Have an authorized party trigger the emergency shutdown and verify it works as expected.",
+          "pass_fail_criteria": "Pass if shutdown is successful; fail otherwise."
+        },
+        {
+          "id": "EMERGENCY-02",
+          "test_case": "No unauthorized shutdown",
+          "detailed_procedure": "Attempt to trigger emergency shutdown with a non-authorized account.",
+          "pass_fail_criteria": "Pass if shutdown is rejected; fail if accepted."
+        },
+        {
+          "id": "EMERGENCY-03",
+          "test_case": "Users can withdraw after shutdown",
+          "detailed_procedure": "After emergency shutdown, verify that existing depositors can withdraw their funds.",
+          "pass_fail_criteria": "Pass if withdrawals are allowed; fail otherwise."
+        },
+        {
+          "id": "EMERGENCY-04",
+          "test_case": "No new deposits after shutdown",
+          "detailed_procedure": "Attempt to make a new deposit after emergency shutdown and verify it's rejected.",
+          "pass_fail_criteria": "Pass if new deposits are rejected; fail otherwise."
+        },
+        {
+          "id": "EMERGENCY-05",
+          "test_case": "Correct emission of shutdown events",
+          "detailed_procedure": "Verify that appropriate events are emitted when emergency shutdown is triggered.",
+          "pass_fail_criteria": "Pass if events are emitted correctly; fail otherwise."
+        },
+        {
+          "id": "EMERGENCY-06",
+          "test_case": "Shutdown cannot be triggered multiple times",
+          "detailed_procedure": "Attempt to trigger emergency shutdown multiple times and verify only the first is effective.",
+          "pass_fail_criteria": "Pass if only one shutdown is effective; fail otherwise."
+        },
+        {
+          "id": "EMERGENCY-07",
+          "test_case": "Funds are safe after shutdown",
+          "detailed_procedure": "After shutdown, ensure all funds are accounted for and withdrawable by users.",
+          "pass_fail_criteria": "Pass if funds are safe and withdrawable; fail otherwise."
+        },
+        {
+          "id": "EMERGENCY-08",
+          "test_case": "No strategy interactions after shutdown",
+          "detailed_procedure": "After shutdown, verify that no new interactions with strategies occur.",
+          "pass_fail_criteria": "Pass if strategy interactions are halted; fail otherwise."
+        },
+        {
+          "id": "EMERGENCY-09",
+          "test_case": "Correct handling of pending operations",
+          "detailed_procedure": "Ensure pending operations (e.g., harvests) are handled correctly after shutdown.",
+          "pass_fail_criteria": "Pass if pending operations are managed properly; fail otherwise."
+        },
+        {
+          "id": "EMERGENCY-10",
+          "test_case": "Shutdown reversal by authorized party",
+          "detailed_procedure": "If reversal is allowed, test that only authorized parties can reverse shutdown.",
+          "pass_fail_criteria": "Pass if reversal is restricted to authorized parties; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "LP Token as Collateral",
+      "test_cases": [
+        {
+          "id": "LPCOLLATERAL-01",
+          "test_case": "Correct acceptance of LP tokens",
+          "detailed_procedure": "Deposit LP tokens into the vault and verify they are accepted and accounted for correctly.",
+          "pass_fail_criteria": "Pass if LP tokens are handled correctly; fail otherwise."
+        },
+        {
+          "id": "LPCOLLATERAL-02",
+          "test_case": "Proper valuation of LP tokens",
+          "detailed_procedure": "Ensure the vault correctly values LP tokens based on their underlying assets.",
+          "pass_fail_criteria": "Pass if valuation is accurate; fail otherwise."
+        },
+        {
+          "id": "LPCOLLATERAL-03",
+          "test_case": "No unauthorized LP token withdrawals",
+          "detailed_procedure": "Attempt to withdraw LP tokens with a non-authorized account.",
+          "pass_fail_criteria": "Pass if withdrawal is denied; fail if granted."
+        },
+        {
+          "id": "LPCOLLATERAL-04",
+          "test_case": "Correct interaction with LP strategies",
+          "detailed_procedure": "Verify that LP tokens are correctly allocated to strategies and profits are handled properly.",
+          "pass_fail_criteria": "Pass if interactions are correct; fail otherwise."
+        },
+        {
+          "id": "LPCOLLATERAL-05",
+          "test_case": "Handling of impermanent loss",
+          "detailed_procedure": "Simulate price divergence in the LP pool and verify that the vault accounts for impermanent loss correctly.",
+          "pass_fail_criteria": "Pass if loss is accounted for accurately; fail otherwise."
+        },
+        {
+          "id": "LPCOLLATERAL-06",
+          "test_case": "No reentrancy during LP token operations",
+          "detailed_procedure": "Attempt to reenter the vault during LP token deposit or withdrawal.",
+          "pass_fail_criteria": "Pass if reentrancy is prevented; fail otherwise."
+        },
+        {
+          "id": "LPCOLLATERAL-07",
+          "test_case": "Correct emission of LP events",
+          "detailed_procedure": "Verify that events are emitted for LP token deposits and withdrawals.",
+          "pass_fail_criteria": "Pass if events are emitted correctly; fail otherwise."
+        },
+        {
+          "id": "LPCOLLATERAL-08",
+          "test_case": "Handling of non-standard LP tokens",
+          "detailed_procedure": "Test deposit/withdrawal with non-standard LP tokens (e.g., different decimals).",
+          "pass_fail_criteria": "Pass if handled correctly; fail otherwise."
+        },
+        {
+          "id": "LPCOLLATERAL-09",
+          "test_case": "LP token withdrawal during shutdown",
+          "detailed_procedure": "After emergency shutdown, verify that LP tokens can be withdrawn correctly.",
+          "pass_fail_criteria": "Pass if withdrawals are allowed; fail otherwise."
+        },
+        {
+          "id": "LPCOLLATERAL-10",
+          "test_case": "No front-running of LP token deposits",
+          "detailed_procedure": "Attempt to front-run LP token deposits to manipulate vault share pricing.",
+          "pass_fail_criteria": "Pass if front-running is prevented; fail otherwise."
+        }
+      ]
+    }
+  ]
+}
