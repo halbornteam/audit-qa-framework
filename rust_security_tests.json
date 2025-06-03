@@ -1,0 +1,148 @@
+{
+  "protocol": "Rust Layer Generic Security Tests",
+  "tags": [
+    {
+      "tag": "Rust language generic test cases",
+      "test_cases": [
+        {
+          "id": "RUST-GEN-01",
+          "test_case": "Overflow checks enabled in release",
+          "detailed_procedure": "Ensure Cargo.toml sets [profile.release] overflow-checks = true. Build with --release and run u128::MAX + 1.",
+          "pass_fail_criteria": "Release build aborts on overflow; wrapped value is never stored."
+        },
+        {
+          "id": "RUST-GEN-02",
+          "test_case": "Fallback to checked_* math",
+          "detailed_procedure": "Disable overflow checks. Replace critical math with checked_add / checked_mul. Trigger an overflow path.",
+          "pass_fail_criteria": "Operation returns None and contract aborts gracefully with StdError::overflow."
+        },
+        {
+        "id": "RUST-GEN-03",
+        "test_case": "Silent default-zero insertion via unwrap_or_default",
+        "detailed_procedure": "Provide malformed input that makes an Option / Result evaluate to None / Err. Code path calls unwrap_or_default(), which would insert the default value **0** into a critical numeric field (e.g., balance, fee_bps). Observe whether the contract accepts that zero and continues execution.",
+        "pass_fail_criteria": "Contract must reject the call (explicit error / revert). Persisting the default value 0 and continuing normal logic is a failure."
+        },
+        {
+          "id": "RUST-GEN-04",
+          "test_case": "Down-casting large integer",
+          "detailed_procedure": "Cast big_u128 as u64 where big_u128 > u64::MAX.",
+          "pass_fail_criteria": "Transaction reverts or aborts; truncated value is not persisted."
+        },
+        {
+        "id": "RUST-GEN-05",
+        "test_case": "Un-persisted state update (resource dropped)",
+        "detailed_procedure": "Identify any struct / resource intended to live in contract state (e.g., position, config). Load it and mutate one of its fields. Exit the scope without calling the helper that saves the resource.",
+        "pass_fail_criteria": "If the modified resource is silently dropped and the new state is not persisted, that is a failure."
+        }
+      ]
+    },
+    {
+      "tag": "Casting & Arithmetic Safety",
+      "test_cases": [
+        {
+          "id": "RUST-CAST-01",
+          "test_case": "Down-cast overflow detection (u128→u64)",
+          "detailed_procedure": "Create big: u128 = u64::MAX as u128 + 1; call contract entry fn that performs (big as u64). Build in --release, fuzz-call with values > u64::MAX. Trace whether Panic, unwrap_err!, or silent wrap-around occurs.",
+          "pass_fail_criteria": "Conversion must abort (panic! / require!) or use checked_* / try_from to return an Err. No truncated value may reach state."
+        },
+        {
+          "id": "RUST-CAST-02",
+          "test_case": "Saturating / checked conversions for token math",
+          "detailed_procedure": "Invoke mint(amount: u128) where amount = u128::MAX. Internally amount is cast to u64 token units. Verify that code uses amount.try_into() and errors, NOT amount as u64 which wraps.",
+          "pass_fail_criteria": "Function returns error TokenAmountTooLarge; state unchanged; no gigantically wrapped supply."
+        },
+        {
+          "id": "RUST-CAST-03",
+          "test_case": "From/Into trait misuse",
+          "detailed_procedure": "Implement From<LargeType> for SmallType without overflow check. Unit-test conversion path with fuzz greater than SmallType::MAX.",
+          "pass_fail_criteria": "Implementation must use TryFrom or explicit check; fuzz should never observe silent modulo behaviour."
+        }
+      ]
+    },
+    {
+      "tag": "String & Encoding Robustness",
+      "test_cases": [
+        {
+          "id": "RUST-STR-01",
+          "test_case": "UTF-8 slice boundary panic DoS",
+          "detailed_procedure": "Pass JSON payload where a UTF-8 multi-byte sequence is split: let s = &input[0..idx] where idx falls on inside of code-point. Expect contract/path to panic if unchecked slicing is used. Fuzz idx across 0..len.",
+          "pass_fail_criteria": "All slice ops must use .get(idx..) or str::is_char_boundary check; malformed boundary never panics runtime; errors are returned gracefully."
+        },
+        {
+          "id": "RUST-STR-02",
+          "test_case": "Invalid UTF-8 decoding",
+          "detailed_procedure": "Send Vec<u8> that is not valid UTF-8 but is parsed via String::from_utf8_unchecked. Observe panic/undefined behaviour.",
+          "pass_fail_criteria": "Contract/API must validate utf8 via from_utf8() and bubble up Err(Utf8Error). No unchecked conversion allowed."
+        }
+      ]
+    },
+    {
+      "tag": "Panic Handling",
+      "test_cases": [
+        {
+          "id": "RUST-PANIC-01",
+          "test_case": "Unhandled panic abort in no_std environment",
+          "detailed_procedure": "Call function expected to panic (e.g., assert!(false)). In CosmWasm/WebAssembly build, ensure panic! is caught and maps to custom Err(), not abort(…) trapping node.",
+          "pass_fail_criteria": "VM returns ContractError::Panic not WASM trap; caller receives clean error code."
+        },
+        {
+          "id": "RUST-PANIC-02",
+          "test_case": "Panic inside external call unwinds state",
+          "detailed_procedure": "Compose two contracts A→B. In B, intentionally panic after mutating its own state. Ensure A call returns Err and both A and B state roll back.",
+          "pass_fail_criteria": "No partial state persists; transaction fully reverted."
+        }
+      ]
+    },
+    {
+      "tag": "Unsafe Concurrency",
+      "test_cases": [
+        {
+          "id": "RUST-RACE-01",
+          "test_case": "Data race via unsafe static mut",
+          "detailed_procedure": "Declare static mut COUNTER: u32 and mutate concurrently via multiple threads in fuzz test (loom / MIRI). Detect unsynchronised writes producing  corrupted value.",
+          "pass_fail_criteria": "All global mutable state must be behind Atomic* or Mutex; loom should find no data race."
+        },
+        {
+          "id": "RUST-RACE-02",
+          "test_case": "TOCTOU on initialization flag",
+          "detailed_procedure": "Implement init_once() that sets a bool INITIALIZED without atomic ordering. Spawn two threads call concurrently; observe double-init.",
+          "pass_fail_criteria": "Initialization must use std::sync::Once or atomic compare_and_swap to guarantee single execution."
+        }
+      ]
+    },
+    {
+      "tag": "Memory Safety (Unsafe)",
+      "test_cases": [
+        {
+          "id": "RUST-UAF-01",
+          "test_case": "Use-after-free via Vec realloc",
+          "detailed_procedure": "Obtain ptr = vec.as_ptr(); push elements until capacity reallocates; use ptr. Run with MIRI to detect use-after-free.",
+          "pass_fail_criteria": "Any raw pointer retained across potential realloc must not be dereferenced; code should use slice indices or re-query ptr each loop."
+        },
+        {
+          "id": "RUST-UAF-02",
+          "test_case": "Dangling pointer from Box::into_raw",
+          "detailed_procedure": "Convert Box<T> into raw, free original without converting back, later dereference raw ptr.",
+          "pass_fail_criteria": "No unsafe deref of freed memory should compile in audit code; fuzz + MIRI must not report Undefined Behaviour."
+        }
+      ]
+    },
+    {
+      "tag": "Randomness Reliability",
+      "test_cases": [
+        {
+          "id": "RUST-RNG-01",
+          "test_case": "Predictable thread_rng across deterministic replay",
+          "detailed_procedure": "Capture entropy seed in unit test by calling thread_rng() twice within same VM snapshot; compare outputs across replays.",
+          "pass_fail_criteria": "Contract must seed RNG with block header / entropy input; pure thread_rng should not be relied on for crypto-grade randomness."
+        },
+        {
+          "id": "RUST-RNG-02",
+          "test_case": "Modulo bias in uniform sampling",
+          "detailed_procedure": "Generate random u32 % 100 to select winner. Run 1e6 draws; perform chi-square test; expect bias if using modulo. Verify contract uses Uniform::from(0..100).",
+          "pass_fail_criteria": "Distribution must be uniform within p-value 0.01; modulo sampling rejected."
+        }
+      ]
+    }
+  ]
+}

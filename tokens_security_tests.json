@@ -118,7 +118,7 @@
         {
           "id": "TOKEN-W-03",
           "test_case": "Reentrancy in withdraw",
-          "detailed_procedure": "\u2022 Create malicious contract that reenters on withdraw\u2022 Reentrancies fail or state remaing consistent",
+          "detailed_procedure": "\u2022 Create malicious contract that reenters on withdraw\u2022 Reentrancies fail or state remains consistent",
           "pass_fail_criteria": "Reentrancy must fail or the state must remain consistent"
         }
       ]
@@ -342,7 +342,7 @@
         {
           "id": "TOKEN-FT-04",
           "test_case": "Fee accumulation and distribution",
-          "detailed_procedure": "\u2022 Accumulate fees over multiple transfers\u2022 Test fee distribution works correctly\u2022 Verify fee withdrawal mechanisms work correctly, including they actually existent\u2022 Verify unauthorized users are unable to receive fees",
+          "detailed_procedure": "\u2022 Accumulate fees over multiple transfers\u2022 Test fee distribution works correctly\u2022 Verify fee withdrawal mechanisms work correctly and that they actually exist\u2022 Verify unauthorized users are unable to receive fees",
           "pass_fail_criteria": "Fees accumulate correctly; distribution mechanisms work; withdrawal authorized properly; unauthorized users are unable to receive fees"
         }
       ]

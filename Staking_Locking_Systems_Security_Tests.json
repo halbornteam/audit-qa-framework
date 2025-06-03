@@ -7,13 +7,13 @@
         {
           "id": "SLS-FLD-01",
           "test_case": "Fixed lock duration enforcement",
-          "detailed_procedure": "Verify that the smart contract enforces a fixed lock duration from the moment tokens are locked",
-          "pass_fail_criteria": "Lock duration is immutable post-initiation"
+          "detailed_procedure": "- lock(100 ether) for a constant LOCK_PERIOD (e.g., 30 days)\n- Warp/advance time by LOCK_PERIOD - 1 second\n- Call unlock() and expect revert with error LOCK_NOT_EXPIRED\n- Warp/advance time by +2 seconds so that now > LOCK_PERIOD\n- Call unlock() again and expect the tx to succeed; the user's token balance should increase by exactly 100 ether; contract state (totalLocked) should be 0",
+          "pass_fail_criteria": "1. unlock() reverts with LOCK_NOT_EXPIRED until full LOCK_PERIOD elapsed\n2. After period, unlock() succeeds and returns full principal; no partial or early unlock allowed"
         },
         {
           "id": "SLS-FLD-02",
           "test_case": "Timestamp handling",
-          "detailed_procedure": "Verify that block.timestamp or other time-based checks are used correctly and that arithmetic operations involving time do not introduce bugs (e.g., overflow or truncation)",
+          "detailed_procedure": "- lock() a position and record block.timestamp as start\n- Query contract getter (e.g., position.unlockTime) and assert it equals start + LOCK_PERIOD\n- Audit arithmetic: check that all time calculations use unchecked{ } only when safe, and avoid overflow when adding durations on 64-bit block.timestamp\n- Run slither/echidna fuzz on functions that perform time math to confirm no wrap-around occurs",
           "pass_fail_criteria": "No arithmetic or time manipulation issues are present"
         },
         {
@@ -30,32 +30,32 @@
         {
           "id": "SLS-FU-01",
           "test_case": "Unstake logic correctness",
-          "detailed_procedure": "Identify the function(s) that allow users to unstake at any time",
+          "detailed_procedure": "Scenario A (happy):\n  1. Stake 1 ETH worth of tokens via stake(amount).\n  2. Immediately call unstake(amount) from the same EOA and expect success.\n\nScenario B (early exit fee):\n  1. Stake 10 ETH; advance time halfway through REWARD_PERIOD.\n  2. Call unstake(10 ETH).\n  3. Expect a PENALTY_FEE (e.g., 1%) to be deducted; assert user receives 9.9 ETH and penaltyReceiver receives 0.1 ETH.\n\nScenario C (unauthorized):\n  1. Address A stakes; Address B calls unstake() on A's position.\n  2. Expect revert UNAUTHORIZED.",
           "pass_fail_criteria": "Users can unstake their tokens at any time if flexible unstake is enabled"
         },
         {
           "id": "SLS-FU-02",
-          "test_case": "Penaly enforcement",
-          "detailed_procedure": "Check whether early/flexible unstaking applies a fee, slashes rewards, or has some impact on pending benefits; Validate that any such mechanics are transparent, fairly applied, and accurately calculated",
-          "pass_fail_criteria": "The contract correctly enforces penalties or reward adjustments, if applicable"
+          "test_case": "Penalty enforcement",
+          "detailed_procedure": "- Stake 100 tokens via stake(100).\n- Immediately call unstake(100).\n  • Expect PENALTY_PCT (e.g., 2%) to be withheld.\n  • Verify user receives 98 tokens and PenaltyTreasury receives 2 tokens.\n- Advance time beyond PENALTY_FREE_PERIOD.\n- Stake another 100 tokens, advance time >= PENALTY_FREE_PERIOD, call unstake(100) again.\n  • Expect full 100 tokens returned, no fee, PenaltyTreasury unchanged.\n- Check FeeApplied event contains correct fee and recipient.",
+          "pass_fail_criteria": "1. Early unstake always applies correct fee.\n2. Unstake after grace period returns full amount.\n3. Fee transferred to PenaltyTreasury and FeeApplied(uint256,address) emitted."
         },
         {
           "id": "SLS-FU-03",
           "test_case": "Permission scope",
-          "detailed_procedure": "Confirm that only the original staker can unstake their tokens; Attempt unstaking from unauthorized addresses",
-          "pass_fail_criteria": "No unauthorized unstaking is possible"
+          "detailed_procedure": "- Address A stakes 10 tokens.\n- Address B (unauthorized) calls unstake(10) specifying Address A's position/ID.\n- Expect revert UNAUTHORIZED or custom error AccessDenied().\n- Repeat with a contract that tries the same delegatecall pattern.",
+          "pass_fail_criteria": "Unauthorized entities cannot unstake on behalf of others; function reverts with explicit access-control error."
         },
         {
           "id": "SLS-FU-04",
           "test_case": "Unstake simulation",
-          "detailed_procedure": "Unstake immediately after staking; Unstake after partial staking duration (if rewards accrue over time); Unstake the full amount and partial amounts in multiple calls",
-          "pass_fail_criteria": "All scenarios work properly"
+          "detailed_procedure": "Edge-case fuzzing:\n- Stake 50 tokens, then call unstake(10) in same block → expect 40 tokens staked remaining.\n- Stake again 20 tokens, advance time half REWARD_PERIOD, unstakeAll() → fee only on reward-eligible portion if designed so.\n- Call unstake(0) and expect revert INVALID_AMOUNT.",
+          "pass_fail_criteria": "Unstaking any valid amount succeeds within design rules; invalid or zero amounts revert; partial and multi-call sequences keep accounting consistent."
         },
         {
           "id": "SLS-FU-05",
           "test_case": "State updates post-unstake",
-          "detailed_procedure": "Confirm that: The user's stake amount is correctly reduced; Rewards (if any) are updated or forfeited per the logic; total pool stake is updated correctly",
-          "pass_fail_criteria": "All balance and state variables are updated consistently and accurately"
+          "detailed_procedure": "- After each unstake call, query: position.amount, userStake, totalPoolStake, and pendingRewards.\n- Confirm:\n  • position.amount decreases by exact unstaked amount.\n  • totalPoolStake mirrors aggregate change.\n  • pendingRewards reset or updated per contract logic.\n  • Emit Unstake(address user,uint256 amount) event.",
+          "pass_fail_criteria": "All staking-related state vars and events reflect the unstake accurately with no off-by-one or rounding drift."
         }
       ]
     },

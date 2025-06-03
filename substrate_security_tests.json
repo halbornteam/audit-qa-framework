@@ -1,0 +1,177 @@
+{
+  "protocol": "Substrate-based Chains Security Tests",
+  "tags": [
+    {
+      "tag": "Origin & Privilege Escalation",
+      "test_cases": [
+        {
+          "id": "SUB-ORIG-01",
+          "test_case": "Root origin gatekeeping",
+          "detailed_procedure": "Call a ROOT-only dispatchable via signed origin using sudo pallet removed or via multisig threshold < 1. Expect transaction to fail with BadOrigin.",
+          "pass_fail_criteria": "All dispatchables annotated with ensure_root!() must reject non-Root origins; event Sudid is only emitted when sudo pallet is enabled and caller == sudo key."
+        },
+        {
+          "id": "SUB-ORIG-02",
+          "test_case": "Signed vs unsigned call confusion",
+          "detailed_procedure": "Craft extrinsic where signature field is 0-filled but call expects ensure_signed(). Submit via RPC and via gossip. Monitor runtime panic.",
+          "pass_fail_criteria": "Extrinsic is rejected in validate_unsigned() or fails at check_signed origin; no runtime panic."
+        },
+        {
+          "id": "SUB-ORIG-03",
+          "test_case": "Pallet call re-encoding through XCM",
+          "detailed_procedure": "Send XCM message containing Call encoded for pallet X with high privilege. Ensure Transact is executed with correct origin Kind (SiblingPara/ForeignBuilder) and cannot escalate to Root.",
+          "pass_fail_criteria": "Call origin inside XCM is correctly mapped; escalation attempt reverts with BadOrigin."
+        }
+      ]
+    },
+    {
+      "tag": "Runtime Upgrade Safety",
+      "test_cases": [
+        {
+          "id": "SUB-UPG-01",
+          "test_case": "Wasm blob deterministic build",
+          "detailed_procedure": "Compile runtime twice on CI with docker-reproducible environment; compare SHA-256. Inject non-determinism (e.g., build timestamp) and observe diff.",
+          "pass_fail_criteria": "Official build artefacts are bit-identical; any diff is flagged."
+        },
+        {
+          "id": "SUB-UPG-02",
+          "test_case": "Storage migration smoke",
+          "detailed_procedure": "Upgrade runtime where pallet storage version increments. Run try_runtime on live chain state snapshot; assert post_upgrade() returns Weight and no panic.",
+          "pass_fail_criteria": "try_runtime passes; storage items accessible; StorageVersion updated."
+        },
+        {
+          "id": "SUB-UPG-03",
+          "test_case": "Runtime downgrade protection",
+          "detailed_procedure": "Submit set_code with previous Wasm hash. Ensure enactment fails in Scheduler.",
+          "pass_fail_criteria": "Chain rejects downgrade unless explicit allow_downgrade flag is set (should be false)."
+        }
+      ]
+    },
+    {
+      "tag": "Weight & Fee Accounting",
+      "test_cases": [
+        {
+          "id": "SUB-WGT-01",
+          "test_case": "Weight underestimation",
+          "detailed_procedure": "Craft extrinsic where length_fee = 0 but call iterates over large vec in storage resulting in > block limit. Execute via off-chain benchmark to obtain worst-case; compare to declared weight constant.",
+          "pass_fail_criteria": "Worst-case weight ≤ declared weight; else fail."
+        },
+        {
+          "id": "SUB-WGT-02",
+          "test_case": "Transaction fee refund accuracy",
+          "detailed_procedure": "Submit call with pays = Pays::No (should refund all). Verify the final balance difference is zero except tip.",
+          "pass_fail_criteria": "Refund exact; no fee leakage."
+        },
+        {
+          "id": "SUB-WGT-03",
+          "test_case": "Dispatch overweight vs block limit",
+          "detailed_procedure": "Construct call where internal loop iterates until consumed_weight > MaximumBlockWeight. Embed in a BatchAll so it bypasses pre-check. Execute and ensure runtime aborts with DispatchError::ExceededBlockWeight before state change.",
+          "pass_fail_criteria": "Transaction fails; Partial batch is reverted; on_initialize/on_finalize metrics remain within block limit."
+        },
+        {
+          "id": "SUB-WGT-04",
+          "test_case": "Weight refund on failed inner call",
+          "detailed_procedure": "Send utility::batch(vec![call_ok, call_fails]); verify fee charged equals weight of successful + failure handling; refund for skipped calls is returned to account.",
+          "pass_fail_criteria": "Post-dispatch fee matches actual executed weight; sender balance reflects refund; event FeePaid emitted with correct amount."
+        },
+        {
+          "id": "SUB-WGT-05",
+          "test_case": "Weight saturation (u64 overflow)",
+          "detailed_procedure": "Benchmark a custom pallet with weight constant = u64::MAX. try_runtime should panic at saturating_add when aggregating weights. Ensure compilation fails or runtime rejects constant.",
+          "pass_fail_criteria": "Build fails statically or runtime panics caught in tests; no live chain can upload palette with overflow constant."
+        }
+      ]
+    },
+    {
+      "tag": "Storage Integrity",
+      "test_cases": [
+        {
+          "id": "SUB-STORE-01",
+          "test_case": "Codec upgrade compatibility",
+          "detailed_procedure": "Write sample struct with SCALE v1 layout. Upgrade code to new struct ordering; run decode(); expect panic if migration missing.",
+          "pass_fail_criteria": "Decoding only succeeds after proper migration; otherwise upgrade blocked in pre_upgrade()."
+        },
+        {
+          "id": "SUB-STORE-02",
+          "test_case": "State root proof validation",
+          "detailed_procedure": "Generate light-client proof for key that does not exist. Verify proof verification fails and cannot inject bogus state.",
+          "pass_fail_criteria": "Proof verifier rejects non-membership proofs with incorrect hash path."
+        }
+      ]
+    },
+    {
+      "tag": "Consensus & Finality",
+      "test_cases": [
+        {
+          "id": "SUB-CON-01",
+          "test_case": "BABE equivocation double vote",
+          "detailed_procedure": "Spin two nodes with same authority key signing two blocks in same slot. Broadcast both to network.",
+          "pass_fail_criteria": "Equivocation report extrinsic slashes offending key and forks choice rule selects one block; other is reorged."
+        },
+        {
+          "id": "SUB-CON-02",
+          "test_case": "GRANDPA voter set corruption",
+          "detailed_procedure": "Submit schedule_change with wrong voter_set len causing decode panic. Ensure runtime rejects.",
+          "pass_fail_criteria": "Invalid voter_set update transaction is rejected with InvalidAuthorityList."
+        }
+      ]
+    },
+    {
+      "tag": "Contracts (ink! / pallet_contracts)",
+      "test_cases": [
+        {
+          "id": "SUB-INK-01",
+          "test_case": "Call stack depth limit",
+          "detailed_procedure": "Create contract A calling itself recursively 1024 times. Expect trap StackOverflow before exhausting block.",
+          "pass_fail_criteria": "Runtime aborts contract execution; outer state unchanged."
+        },
+        {
+          "id": "SUB-INK-02",
+          "test_case": "Storage rent eviction",
+          "detailed_procedure": "Deploy contract with large storage; do not pay rent; advance blocks until eviction. Query code_hash and ensure storage removed.",
+          "pass_fail_criteria": "Contract data cleaned; caller cannot resurrect without instantiate call."
+        }
+      ]
+    },
+    {
+      "tag": "Off-chain Worker / Oracle",
+      "test_cases": [
+        {
+          "id": "SUB-OCW-01",
+          "test_case": "Stale price feed submission",
+          "detailed_procedure": "Send offchain_signed_tx with timestamp older than STALE_THRESHOLD. Ensure on_receive rejects.",
+          "pass_fail_criteria": "Extrinsic reverts with Error::StaleReport; state unchanged."
+        },
+        {
+          "id": "SUB-OCW-02",
+          "test_case": "Key leak in signed tx",
+          "detailed_procedure": "Configure OCW to log debug(private_key). Build in release. Static-analyse wasm to ensure key not embedded.",
+          "pass_fail_criteria": "No private key bytes appear in runtime wasm."
+        }
+      ]
+    },
+    {
+      "tag": "Panic Safety",
+      "test_cases": [
+        {
+          "id": "SUB-PAN-01",
+          "test_case": "Runtime panic from unreachable!()", 
+          "detailed_procedure": "Inject mock call that triggers unreachable!() via privileged origin on testnet. Observe node behaviour under --release build with panic=abort.",
+          "pass_fail_criteria": "Node drops offending block, continues syncing; peers prune fork; no consensus stall."
+        },
+        {
+          "id": "SUB-PAN-02",
+          "test_case": "Panic in off-chain worker thread",
+          "detailed_procedure": "Have ocw::offchain_signed panic!(). Check that node logs error but main consensus thread continues.",
+          "pass_fail_criteria": "OCW panic isolated; no node shutdown; metrics ocw_errors incremented."
+        },
+        {
+          "id": "SUB-PAN-03",
+          "test_case": "try_runtime post_upgrade panic handling",
+          "detailed_procedure": "Run try_runtime with deliberately faulty migration that panics. Expect CLI exit code non-zero and human-readable backtrace.",
+          "pass_fail_criteria": "CI fails fast; panic surfaced; chain upgrade blocked prior to on-chain submission."
+        }
+      ]
+    }
+  ]
+} 
