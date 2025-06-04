@@ -1,6 +1,6 @@
 {
-  "protocol": "Substrate-based Chains Security Tests",
-  "tags": [
+  "tag": "Substrate",
+  "categories": [
     {
       "tag": "Origin & Privilege Escalation",
       "test_cases": [

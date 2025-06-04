@@ -1,6 +1,6 @@
 {
-    "protocol": "Rollup / L2 Security Tests",
-    "tags": [
+    "tag": "L2",
+    "categories": [
       {
         "tag": "Fraud Handling",
         "test_cases": [
@@ -148,6 +148,23 @@
             "test_case": "Submitter corruption resilience",
             "detailed_procedure": "- Simulate malicious DA submitter injecting corrupted chunk.\n- Monitor re-encoding / redundancy checks.",
             "pass_fail_criteria": "Corrupted chunk detected and excluded; honest replicas preserve data integrity."
+          }
+        ]
+      },
+      {
+        "tag": "State Transition Validation",
+        "test_cases": [
+          {
+            "id": "L2-STV-01",
+            "test_case": "Fraud proof validation",
+            "detailed_procedure": "1. Submit L2 block with invalid state transition (e.g., double-spend).\n2. Challenger generates fraud proof using proving system.\n3. Submit fraud proof to L1 contract within challenge period.\n4. L1 verifier validates proof against state root.\n5. If valid, rollback fraudulent block and slash sequencer.\n6. Test edge cases: near-timeout submissions, invalid proofs.",
+            "pass_fail_criteria": "Fraud proofs correctly identify invalid transitions; sequencer properly penalized; rollback mechanism works."
+          },
+          {
+            "id": "L2-STV-02",
+            "test_case": "State root commitment accuracy",
+            "detailed_procedure": "1. Process 100 L2 transactions (transfers, contract calls).\n2. Build merkle tree of account states.\n3. Compute state root using keccak256 hash function.\n4. Compare on-chain state root commitment with off-chain calculation.\n5. Test with empty blocks, single tx blocks, and full blocks.\n6. Verify incremental merkle tree updates.",
+            "pass_fail_criteria": "State root calculations match off-chain computation ±0; merkle proofs validate correctly."
           }
         ]
       }

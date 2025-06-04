@@ -1,26 +1,26 @@
 {
-  "protocol": "Lending Protocol Security Tests",
-  "tags": [
+  "tag": "Lending",
+  "categories": [
     {
       "tag": "Compound Fork",
       "test_cases": [
         {
           "id": "LEND-CF-01",
           "test_case": "cToken exchange rate manipulation",
-          "detailed_procedure": "\u2022 Deploy cToken with initial reserves\u2022 Fuzz supply/redeem operations with extreme values\u2022 Directly transfer underlying to cToken contract",
-          "pass_fail_criteria": "Exchange rate increases monotonically; no artificial inflation through direct transfers"
+          "detailed_procedure": "1. Deploy cUSDC with initial 1:1 exchange rate.\n2. Supply 1000 USDC via mint().\n3. Directly transfer 1000 USDC to cToken contract (bypass mint).\n4. Call exchangeRateStored() and verify rate unchanged.\n5. Fuzz with extreme values: supply 1 wei, redeem MAX_UINT.\n6. Monitor for any exchange rate manipulation.",
+          "pass_fail_criteria": "Exchange rate monotonically increasing; direct transfers don't inflate rate; extreme values handled safely."
         },
         {
           "id": "LEND-CF-02",
           "test_case": "Interest rate model accuracy",
-          "detailed_procedure": "\u2022 Configure jump rate model with known parameters\u2022 Simulate various utilization rates (0%, 50%, 80%, 100%)\u2022 Compare getBorrowRate() output to manual calculation\u2022 Test edge cases at kink point",
-          "pass_fail_criteria": "Calculated rates match model within 1 wei; smooth transition at kink"
+          "detailed_procedure": "1. Deploy JumpRateModel with baseRate=2%, multiplier=10%, jumpMultiplier=50%, kink=80%.\n2. Set pool utilization to 0% (no borrows): expect rate = 2%.\n3. Set utilization to 40%: expect rate = 2% + 40% * 10% = 6%.\n4. Set utilization to 90%: expect rate = 2% + 80% * 10% + 10% * 50% = 15%.\n5. Compare getBorrowRate() to manual calculations.",
+          "pass_fail_criteria": "Interest rates match model ±1 wei precision; kink transitions smoothly."
         },
         {
           "id": "LEND-CF-03",
           "test_case": "Supply/borrow cap enforcement",
-          "detailed_procedure": "\u2022 Set supply cap to current supply + 1 token\u2022 Attempt to supply 2 tokens\u2022 Set borrow cap and attempt to exceed\u2022 Test cap updates during active positions",
-          "pass_fail_criteria": "Operations revert when caps exceeded; existing positions unaffected by cap changes"
+          "detailed_procedure": "1. Current total supply = 1000 USDC.\n2. Set supply cap to 1001 USDC via admin.\n3. Attempt to supply 2 USDC - expect revert SUPPLY_CAP_REACHED.\n4. Set borrow cap to current borrows + 1 USDC.\n5. Attempt borrow exceeding cap - expect revert.\n6. Verify existing positions remain functional.",
+          "pass_fail_criteria": "Cap enforcement strict; existing positions unaffected; proper error messages."
         }
       ]
     },
@@ -30,20 +30,20 @@
         {
           "id": "LEND-AF-01",
           "test_case": "Bad debt can be handled",
-          "detailed_procedure": "\u2022 User position becomes underwater\u2022 A random user repays the position",
-          "pass_fail_criteria": "Repaying must be possible and must not be made permissioned, Aave handles bad debt through repaying funds from a safety module, they have no other way to handle bad debt"
+          "detailed_procedure": "1. User position becomes underwater due to price drop.\n2. A random user repays the position via liquidation.\n3. Verify bad debt handled through repaying funds from safety module.\n4. Test multiple bad debt scenarios with different collateral types.\n5. Confirm protocol has no other way to handle bad debt except through repayment.",
+          "pass_fail_criteria": "Repaying must be possible and must not be made permissioned; Aave handles bad debt through repaying funds from a safety module, they have no other way to handle bad debt."
         },
         {
           "id": "LEND-AF-02",
           "test_case": "Isolation mode restrictions",
-          "detailed_procedure": "\u2022 Enable isolation mode for specific asset\u2022 Attempt to borrow multiple isolated assets\u2022 Try to use isolated asset as collateral for non-isolated borrowing\u2022 Test debt ceiling enforcement in isolation",
-          "pass_fail_criteria": "Only one isolated asset borrowable at a time; isolation rules strictly enforced"
+          "detailed_procedure": "1. Enable isolation mode for specific asset via governance.\n2. Attempt to borrow multiple isolated assets simultaneously.\n3. Try to use isolated asset as collateral for non-isolated borrowing.\n4. Test debt ceiling enforcement in isolation mode.\n5. Verify only one isolated asset can be borrowed at a time.",
+          "pass_fail_criteria": "Only one isolated asset borrowable at a time; isolation rules strictly enforced."
         },
         {
           "id": "LEND-AF-03",
           "test_case": "Liquidation bonus calculation",
-          "detailed_procedure": "\u2022 Create underwater position with multiple collaterals\u2022 Trigger partial liquidation\u2022 Verify liquidation bonus applied correctly\u2022 Test bonus distribution between liquidator and protocol",
-          "pass_fail_criteria": "Bonus calculation matches configuration; proper distribution between parties"
+          "detailed_procedure": "1. Create underwater position with multiple collaterals.\n2. Trigger partial liquidation by external liquidator.\n3. Verify liquidation bonus applied correctly per configuration.\n4. Test bonus distribution between liquidator and protocol.\n5. Calculate expected vs actual bonus amounts.",
+          "pass_fail_criteria": "Bonus calculation matches configuration; proper distribution between parties."
         }
       ]
     },
@@ -53,20 +53,20 @@
         {
           "id": "LEND-IA-01",
           "test_case": "Compounding interest accuracy",
-          "detailed_procedure": "\u2022 Simulate 1 year of borrowing\u2022 Accrue interest block-by-block vs single calculation\u2022 Compare the results of both",
-          "pass_fail_criteria": "Both values only differ by a small and reasonable difference, caused by small precision issues"
+          "detailed_procedure": "1. Simulate 1 year of borrowing with 10% APY.\n2. Accrue interest block-by-block over 365 days.\n3. Calculate single compound interest for 1 year.\n4. Compare the results of both calculations.\n5. Verify difference is within acceptable precision bounds.",
+          "pass_fail_criteria": "Both values only differ by a small and reasonable difference, caused by small precision issues."
         },
         {
           "id": "LEND-IA-02",
           "test_case": "Abusing outdated state due to missing accruals before operations",
-          "detailed_procedure": "\u2022 Deposit/mint in the protocol\u2022 Immediately withdraw/redeem\u2022 Check whether the user is profitable from this operation",
-          "pass_fail_criteria": "User should not be profitable from this operation and instead get the same amount as deposited or lose 1-2 wei due to rounding"
+          "detailed_procedure": "1. Deposit/mint in the protocol to establish position.\n2. Wait for interest to accrue without triggering update.\n3. Immediately withdraw/redeem full amount.\n4. Check whether the user is profitable from this operation.\n5. Compare deposit amount against received amount.",
+          "pass_fail_criteria": "User should not be profitable from this operation and instead get the same amount as deposited or lose 1-2 wei due to rounding."
         },
         {
           "id": "LEND-IA-03",
           "test_case": "Precision loss in calculations",
-          "detailed_procedure": "\u2022 Consider a token like WBTC with low decimals and high value where each round down is more likely and can be significant\u2022 Accrue the interest on each block\u2022 Check the interest lost due to rounding",
-          "pass_fail_criteria": "No significant interest should be lost due to rounding"
+          "detailed_procedure": "1. Consider a token like WBTC with low decimals (8) and high value.\n2. Each round down is more likely and can be significant in value.\n3. Accrue the interest on each block for extended period.\n4. Check the interest lost due to rounding across many accruals.\n5. Calculate cumulative precision loss impact.",
+          "pass_fail_criteria": "No significant interest should be lost due to rounding."
         }
       ]
     },
@@ -76,26 +76,26 @@
         {
           "id": "LEND-BR-01",
           "test_case": "Over-repayment handling",
-          "detailed_procedure": "\u2022 Borrow 100 tokens, attempt to repay 200 tokens\u2022 Verify excess funds returned to user",
-          "pass_fail_criteria": "Excess repayments returned; debt cleared to zero; no protocol loss"
+          "detailed_procedure": "1. Borrow 100 tokens from lending protocol.\n2. Attempt to repay 200 tokens (double the debt).\n3. Verify excess funds returned to user correctly.\n4. Check that debt is cleared to zero exactly.\n5. Confirm no protocol loss from over-repayment.",
+          "pass_fail_criteria": "Excess repayments returned; debt cleared to zero; no protocol loss."
         },
         {
           "id": "LEND-BR-02",
-          "test_case": "Decreasing fees/borrow rate by abusing utilizarion ratio",
-          "detailed_procedure": "\u2022 Borrow such an amount so utilizarion ratio is increased by 10% and check the fees/borrow rate\u2022 In the same state as before step 1, instead of borrowing once, borrow 10 or more times, again increasing the utilization ratio by a total of 10%\u2022 Compare the borrow rate or fees paid, an incorrect implementation will result in less fees/borrow rate when splitting borrows",
-          "pass_fail_criteria": "Confirm that the borrow rate or fees paid is the same in both scenarios"
+          "test_case": "Decreasing fees/borrow rate by abusing utilization ratio",
+          "detailed_procedure": "1. Borrow such an amount so utilization ratio is increased by 10% and check the fees/borrow rate.\n2. In the same state as before step 1, instead of borrowing once, borrow 10 or more times.\n3. Again increase the utilization ratio by a total of 10% through multiple smaller borrows.\n4. Compare the borrow rate or fees paid in both scenarios.\n5. Verify an incorrect implementation will result in less fees/borrow rate when splitting borrows.",
+          "pass_fail_criteria": "Confirm that the borrow rate or fees paid is the same in both scenarios."
         },
         {
           "id": "LEND-BR-03",
           "test_case": "Bypassing max utilization ratio",
-          "detailed_procedure": "\u2022 Set max utilization ratio to 80%\u2022 Borrow up to the max utilization ratio\u2022 In one transaction, supply into the protocol, borrow again as utilization ratio decreased and withdraw your supply",
-          "pass_fail_criteria": "The mentioned scenario should revert or at least result in some kind of a penalty for the user"
+          "detailed_procedure": "1. Set max utilization ratio to 80% via governance.\n2. Borrow up to the max utilization ratio (80%).\n3. In one transaction, supply into the protocol to decrease utilization.\n4. Borrow again as utilization ratio decreased.\n5. Withdraw your supply in the same transaction.\n6. Check if this bypasses the 80% limit.",
+          "pass_fail_criteria": "The mentioned scenario should revert or at least result in some kind of a penalty for the user."
         },
         {
           "id": "LEND-BR-04",
           "test_case": "Debt ceiling enforcement",
-          "detailed_procedure": "\u2022 Set debt ceiling near current total debt\u2022 Attempt to borrow beyond ceiling",
-          "pass_fail_criteria": "Borrowing blocked when ceiling reached"
+          "detailed_procedure": "1. Set debt ceiling near current total debt amount.\n2. Attempt to borrow amount that would exceed ceiling.\n3. Verify transaction reverts with appropriate error.\n4. Test edge case: borrowing exactly to the ceiling.\n5. Confirm ceiling applies globally across all users.",
+          "pass_fail_criteria": "Borrowing blocked when ceiling reached."
         }
       ]
     },
@@ -105,32 +105,32 @@
         {
           "id": "LEND-CR-01",
           "test_case": "LTV enforcement accuracy",
-          "detailed_procedure": "\u2022 Supply collateral, calculate maximum borrow amount\u2022 Attempt to borrow 1 wei more than maximum",
-          "pass_fail_criteria": "Borrowing reverts when LTV exceeded"
+          "detailed_procedure": "1. Supply collateral worth $1000 with 75% LTV.\n2. Calculate maximum borrow amount ($750).\n3. Attempt to borrow $750.01 (1 cent over maximum).\n4. Verify transaction reverts with LTV_EXCEEDED error.\n5. Successfully borrow $750 to confirm threshold accuracy.",
+          "pass_fail_criteria": "Borrowing reverts when LTV exceeded."
         },
         {
           "id": "LEND-CR-02",
           "test_case": "Collateral factor changes",
-          "detailed_procedure": "\u2022 Create position at maximum LTV\u2022 Decrease collateral factor via owner/governance\u2022 Verify position becomes underwater\u2022 Test user's ability to add collateral",
-          "pass_fail_criteria": "Parameter changes affect existing positions; liquidation threshold properly updated"
+          "detailed_procedure": "1. Create position at maximum LTV (e.g., 75%).\n2. Governance decreases collateral factor to 60%.\n3. Verify position becomes underwater immediately.\n4. Test user's ability to add collateral to restore health.\n5. Confirm liquidation threshold properly updated.",
+          "pass_fail_criteria": "Parameter changes affect existing positions; liquidation threshold properly updated."
         },
         {
           "id": "LEND-CR-03",
           "test_case": "Collateral disable/enable",
-          "detailed_procedure": "\u2022 Use asset as collateral, disable it via governance\u2022 Verify existing positions remain valid\u2022 Test new positions cannot use disabled collateral\u2022 Re-enable and verify functionality restored",
-          "pass_fail_criteria": "Disabled collateral cannot be used for new positions; existing positions grandfathered"
+          "detailed_procedure": "1. Use asset as collateral in active borrowing position.\n2. Governance disables asset as collateral.\n3. Verify existing positions remain valid and functional.\n4. Test new positions cannot use disabled collateral.\n5. Re-enable collateral and verify functionality restored.",
+          "pass_fail_criteria": "Disabled collateral cannot be used for new positions; existing positions grandfathered."
         },
         {
           "id": "LEND-CR-04",
           "test_case": "Removing collateral from position going above max LTV",
-          "detailed_procedure": "\u2022 Create a position based on the max LTV\u2022 Remove collateral from your position",
-          "pass_fail_criteria": "The operation should fail"
+          "detailed_procedure": "1. Create a position based on the max LTV (75%).\n2. Attempt to remove collateral from your position.\n3. Calculate if removal would push LTV above maximum.\n4. Verify transaction reverts if LTV would exceed limit.\n5. Test partial collateral removal within safe limits.",
+          "pass_fail_criteria": "The operation should fail if it would exceed max LTV."
         },
         {
           "id": "LEND-CR-05",
           "test_case": "Removing reasonable amount of collateral from a healthy position",
-          "detailed_procedure": "\u2022 Create a very healthy position\u2022 Remove collateral that does not put you over max LTV",
-          "pass_fail_criteria": "The operation should succeed as user's position is healthy"
+          "detailed_procedure": "1. Create a very healthy position (30% LTV, well below 75% max).\n2. Remove collateral that does not put you over max LTV.\n3. Verify transaction succeeds and position remains healthy.\n4. Check that collateral accounting is accurate post-removal.\n5. Confirm user retains borrowing capacity.",
+          "pass_fail_criteria": "The operation should succeed as user's position is healthy."
         }
       ]
     },
@@ -140,20 +140,20 @@
         {
           "id": "LEND-LT-01",
           "test_case": "Liquidation trigger accuracy",
-          "detailed_procedure": "\u2022 Create position at liquidation threshold - 1 wei\u2022 Accrue small amount of interest to trigger liquidation\u2022 Verify liquidation becomes available exactly at threshold\u2022 Test with multiple collateral types",
-          "pass_fail_criteria": "Liquidation available exactly when the user hits the liquidation threshold - no premature liquidations and no delayed liquidations"
+          "detailed_procedure": "1. Create position at liquidation threshold - 1 wei health factor.\n2. Accrue small amount of interest to trigger liquidation.\n3. Verify liquidation becomes available exactly at threshold.\n4. Test with multiple collateral types and price scenarios.\n5. Confirm no premature or delayed liquidations occur.",
+          "pass_fail_criteria": "Liquidation available exactly when the user hits the liquidation threshold - no premature liquidations and no delayed liquidations."
         },
         {
           "id": "LEND-LT-02",
           "test_case": "Partial liquidation limits",
-          "detailed_procedure": "\u2022 Create large underwater position\u2022 Perform partial liquidation to bring above threshold\u2022 Verify liquidation stops when position healthy\u2022 Test maximum liquidation percentage enforcement",
-          "pass_fail_criteria": "Partial liquidation restores health; maximum liquidation percentage respected"
+          "detailed_procedure": "1. Create large underwater position worth $10,000.\n2. Perform partial liquidation to bring above threshold.\n3. Verify liquidation stops when position becomes healthy.\n4. Test maximum liquidation percentage enforcement (e.g., 50%).\n5. Confirm liquidator cannot over-liquidate healthy position.",
+          "pass_fail_criteria": "Partial liquidation restores health; maximum liquidation percentage respected."
         },
         {
           "id": "LEND-LT-03",
           "test_case": "Users blocking liquidations",
-          "detailed_procedure": "\u2022 Create a position which then goes underwater\u2022 Trigger liquidation\u2022 Make sure there is no way for users to block the liquidation, e.g. by reverting in their receive() function",
-          "pass_fail_criteria": "Liquidations must not be blocked by users"
+          "detailed_procedure": "1. Create a position which then goes underwater.\n2. Deploy malicious contract with reverting receive() function.\n3. Trigger liquidation that would send proceeds to malicious contract.\n4. Verify liquidation cannot be blocked by user reversion.\n5. Test alternative: liquidator can specify different recipient.",
+          "pass_fail_criteria": "Liquidations must not be blocked by users."
         }
       ]
     },
@@ -163,20 +163,20 @@
         {
           "id": "LEND-LD-01",
           "test_case": "Liquidation bonus calculation",
-          "detailed_procedure": "\u2022 Configure liquidation bonus (e.g., 5%)\u2022 Perform liquidation of known amount\u2022 Verify liquidator receives bonus",
-          "pass_fail_criteria": "Bonus calculated correctly; liquidator receives configured percentage"
+          "detailed_procedure": "1. Configure liquidation bonus to 5% in protocol settings.\n2. Perform liquidation of known amount ($1000 collateral).\n3. Verify liquidator receives $1050 worth of collateral.\n4. Calculate bonus amount ($50) matches configuration.\n5. Test with different bonus percentages and collateral types.",
+          "pass_fail_criteria": "Bonus calculated correctly; liquidator receives configured percentage."
         },
         {
           "id": "LEND-LD-02",
           "test_case": "Bad debt socialization",
-          "detailed_procedure": "\u2022 Create position with collateral value < debt\u2022 Attempt liquidation\u2022 Verify bad debt handling mechanism",
-          "pass_fail_criteria": "Bad debt properly handled based on the protocol mechanism - either from reserves, bad debt socialization or a novel mechanism"
+          "detailed_procedure": "1. Create position with collateral value < debt (e.g., $800 collateral, $1000 debt).\n2. Attempt liquidation of insolvent position.\n3. Verify bad debt handling mechanism activates.\n4. Check if bad debt is socialized among token holders or covered by reserves.\n5. Test protocol's solvency after bad debt event.",
+          "pass_fail_criteria": "Bad debt properly handled based on the protocol mechanism - either from reserves, bad debt socialization or a novel mechanism."
         },
         {
           "id": "LEND-LD-03",
           "test_case": "Liquidations properly handle protocol fees",
-          "detailed_procedure": "\u2022 Create a position that goes underwater and the collateral is slightly above the debt\u2022 Liquidate",
-          "pass_fail_criteria": "Make sure liquidator still profits, protocol fees on liquidation must be taken as a % from profit, not from total collateral"
+          "detailed_procedure": "1. Create a position that goes underwater with collateral slightly above debt.\n2. Configure protocol liquidation fee (e.g., 2% of bonus).\n3. Execute liquidation and verify fee distribution.\n4. Ensure liquidator still profits after protocol fee.\n5. Confirm protocol fees taken from liquidation bonus, not total collateral.",
+          "pass_fail_criteria": "Make sure liquidator still profits, protocol fees on liquidation must be taken as a % from profit, not from total collateral."
         }
       ]
     },
@@ -186,14 +186,14 @@
         {
           "id": "LEND-AR-01",
           "test_case": "Fee changes must be preceded by an accrual",
-          "detailed_procedure": "\u2022 There is a pending interest accrual\u2022 Protocol changes the fee they receive from interest and increases it\u2022 Accrue the pending interest",
-          "pass_fail_criteria": "The interest must have been accrued before the fee change so protocol does not steal the pending interest and thus the last step of the pending interest accrual must do nothing"
+          "detailed_procedure": "1. Create situation with pending interest accrual.\n2. Protocol governance increases reserve factor from 10% to 20%.\n3. Trigger interest accrual after fee change.\n4. Verify pending interest calculated with old fee rate.\n5. Confirm protocol doesn't steal pending interest via fee change timing.",
+          "pass_fail_criteria": "The interest must have been accrued before the fee change so protocol does not steal the pending interest and thus the last step of the pending interest accrual must do nothing."
         },
         {
           "id": "LEND-AR-02",
           "test_case": "LTV and CR are set appropriately",
-          "detailed_procedure": "\u2022 Borrow funds up to the LTV\u2022 LTV must be set so the user is not immediately in bad debt or won't be in bad debt due to a small price movement",
-          "pass_fail_criteria": "User must not be in bad debt immediately or due to a small price difference"
+          "detailed_procedure": "1. Borrow funds up to the maximum LTV (e.g., 75%).\n2. Simulate small price movement (5% collateral price drop).\n3. Verify user is not immediately in bad debt.\n4. Check liquidation threshold provides adequate buffer.\n5. Test with volatile vs stable asset price scenarios.",
+          "pass_fail_criteria": "User must not be in bad debt immediately or due to a small price difference."
         }
       ]
     },
@@ -203,26 +203,26 @@
         {
           "id": "LEND-FL-01",
           "test_case": "Flash loan fee calculation",
-          "detailed_procedure": "\u2022 Execute flash loan of known amount\u2022 Verify fee calculation accuracy\u2022 Test fee distribution between protocol and reserves\u2022 Check fee exemptions for whitelisted contracts",
-          "pass_fail_criteria": "Fees calculated correctly; proper distribution; exemptions work"
+          "detailed_procedure": "1. Execute flash loan of 100,000 USDC with 0.09% fee.\n2. Verify fee calculation: 100,000 * 0.0009 = 90 USDC.\n3. Test fee distribution between protocol and reserves.\n4. Check fee exemptions for whitelisted contracts.\n5. Confirm fee precision with various loan amounts.",
+          "pass_fail_criteria": "Fees calculated correctly; proper distribution; exemptions work."
         },
         {
           "id": "LEND-FL-02",
           "test_case": "Flash loan callback security",
-          "detailed_procedure": "\u2022 Implement malicious callback that attempts re-entrancy\u2022 Try to call other protocol functions during callback\u2022 Test state consistency during callback execution",
-          "pass_fail_criteria": "Re-entrancy blocked; state remains consistent"
+          "detailed_procedure": "1. Implement malicious callback that attempts re-entrancy.\n2. Try to call other protocol functions during callback execution.\n3. Test state consistency during callback execution.\n4. Verify reentrancy guards prevent nested calls.\n5. Check that callback cannot manipulate protocol state improperly.",
+          "pass_fail_criteria": "Re-entrancy blocked; state remains consistent."
         },
         {
           "id": "LEND-FL-03",
           "test_case": "Flash loan atomicity",
-          "detailed_procedure": "\u2022 Execute flash loan with callback that fails\u2022 Verify entire transaction reverts\u2022 Test partial repayment scenarios",
-          "pass_fail_criteria": "Failed flash loans revert entirely"
+          "detailed_procedure": "1. Execute flash loan with callback that intentionally fails.\n2. Verify entire transaction reverts atomically.\n3. Test partial repayment scenarios (insufficient funds).\n4. Confirm no intermediate state changes persist.\n5. Verify protocol balances unchanged after failed flash loan.",
+          "pass_fail_criteria": "Failed flash loans revert entirely."
         },
         {
           "id": "LEND-FL-04",
           "test_case": "Flashmint share inflation",
-          "detailed_procedure": "\u2022 Deposit assets into the protocol as the first depositor\u2022 Flashmint a share amount such that the fees applied are equal to the total supply minus 1\u2022 Check the share to asset ratio and confirm no inflation occurred",
-          "pass_fail_criteria": "If the operation succeeds, then a share inflation might be possible, make sure it reverts or if it succeeds, check the share to asset ratio"
+          "detailed_procedure": "1. Deposit assets into the protocol as the first depositor.\n2. Flashmint a share amount such that fees applied equal total supply minus 1.\n3. Check the share to asset ratio after operation.\n4. Verify no share inflation occurred during flash mint.\n5. Test with extreme values and edge cases.",
+          "pass_fail_criteria": "If the operation succeeds, then a share inflation might be possible, make sure it reverts or if it succeeds, check the share to asset ratio."
         }
       ]
     },
@@ -232,20 +232,20 @@
         {
           "id": "LEND-RF-01",
           "test_case": "Protocol fee distribution accuracy",
-          "detailed_procedure": "\u2022 Configure reserve factor (e.g., 20%)\u2022 Accrue interest over time\u2022 Verify protocol receives correct percentage",
-          "pass_fail_criteria": "Protocol receives exact reserve factor percentage"
+          "detailed_procedure": "1. Configure reserve factor to 20% in protocol settings.\n2. Accrue 1000 USDC in interest over time period.\n3. Verify protocol receives exactly 200 USDC (20%).\n4. Verify suppliers receive 800 USDC (80%).\n5. Test with different reserve factor percentages.",
+          "pass_fail_criteria": "Protocol receives exact reserve factor percentage."
         },
         {
           "id": "LEND-RF-02",
           "test_case": "Fee withdrawal authorization",
-          "detailed_procedure": "\u2022 Attempt fee withdrawal from unauthorized account\u2022 Test partial vs full withdrawal permissions",
-          "pass_fail_criteria": "Only authorized accounts can receive the funds"
+          "detailed_procedure": "1. Accrue protocol fees in reserve.\n2. Attempt fee withdrawal from unauthorized account.\n3. Test partial vs full withdrawal permissions.\n4. Verify only treasury or admin can withdraw fees.\n5. Check withdrawal limits and authorization patterns.",
+          "pass_fail_criteria": "Only authorized accounts can receive the funds."
         },
         {
           "id": "LEND-RF-03",
           "test_case": "Protocol receiving shares accounts for share dilution",
-          "detailed_procedure": "\u2022 Protocol design must be such that the protocol gets minted shares as a fee instead of receiving assets\u2022 The fee is set to 10% and there is a pending interest of X tokens\u2022 Interest is accrued and protocol receives their shares\u2022 Protocol immediately redeems their shares for assets",
-          "pass_fail_criteria": "Protocol must receive 0.1X tokens after the redemption, otherwise the fee distribution calculation does not account for the share dilution due to the protocol fee mint"
+          "detailed_procedure": "1. Protocol design must mint shares as fee instead of receiving assets.\n2. Set protocol fee to 10% with pending interest of 1000 tokens.\n3. Interest is accrued and protocol receives their shares.\n4. Protocol immediately redeems their shares for assets.\n5. Verify protocol receives exactly 100 tokens (10% of 1000).",
+          "pass_fail_criteria": "Protocol must receive 0.1X tokens after the redemption, otherwise the fee distribution calculation does not account for the share dilution due to the protocol fee mint."
         }
       ]
     },
@@ -255,20 +255,20 @@
         {
           "id": "LEND-TI-01",
           "test_case": "Sandwiching distributions",
-          "detailed_procedure": "\u2022 Deposit as a user\u2022 Immediately distribute rewards\u2022 The user immediately withdraws\u2022 Compare the deposit amount against the received amount",
-          "pass_fail_criteria": "The user must not have received more than what he deposited or the difference must be very small due to a small accrual between deposit and withdrawal"
+          "detailed_procedure": "1. Deposit substantial amount as a user (e.g., 1M USDC).\n2. Immediately trigger reward distribution via governance.\n3. User immediately withdraws all funds.\n4. Compare the deposit amount against the received amount.\n5. Calculate if user gained unfair rewards from timing.",
+          "pass_fail_criteria": "The user must not have received more than what he deposited or the difference must be very small due to a small accrual between deposit and withdrawal."
         },
         {
           "id": "LEND-TI-02",
           "test_case": "Reward claiming mechanics",
-          "detailed_procedure": "\u2022 Accrue rewards over multiple periods\u2022 Test partial vs full claiming\u2022 Verify claiming doesn't affect other users",
-          "pass_fail_criteria": "Claims work correctly; no cross-user impact"
+          "detailed_procedure": "1. Accrue rewards over multiple distribution periods.\n2. Test partial vs full reward claiming functionality.\n3. Verify claiming doesn't affect other users' rewards.\n4. Check reward calculation accuracy across multiple users.\n5. Test edge cases like claiming zero rewards.",
+          "pass_fail_criteria": "Claims work correctly; no cross-user impact."
         },
         {
           "id": "LEND-TI-03",
           "test_case": "Batch distributions",
-          "detailed_procedure": "\u2022 If there is a batch distribution functionality, create a distribution of 5 users\u2022 Distribute the funds to the 5 users",
-          "pass_fail_criteria": "Confirm that there is no way for 1 failed iteration to affect and block all other 4 users from receiving their funds"
+          "detailed_procedure": "1. Create batch distribution functionality for 5 users.\n2. Ensure one user's transaction failure doesn't block others.\n3. Distribute the funds to all 5 users in batch.\n4. Test partial failure scenarios and recovery.\n5. Verify all successful distributions complete.",
+          "pass_fail_criteria": "Confirm that there is no way for 1 failed iteration to affect and block all other 4 users from receiving their funds."
         }
       ]
     }

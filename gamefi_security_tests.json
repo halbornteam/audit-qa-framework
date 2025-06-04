@@ -1,56 +1,56 @@
 {
-  "protocol": "GameFi",
-  "tags": [
+  "tag": "GameFi",
+  "categories": [
     {
       "tag": "Core GameFi",
       "test_cases": [
         {
           "id": "GAMEFI-CORE-1",
           "test_case": "Secure randomness for game outcomes",
-          "detailed_procedure": "• Trigger a game action that depends on randomness\n• Verify randomness source is unpredictable and unbiased\n• Attempt to manipulate or predict outcome",
-          "pass_fail_criteria": "Randomness is verifiable, unpredictable, and manipulation attempts fail"
+          "detailed_procedure": "1. Deploy game contract using Chainlink VRF for randomness.\n2. Start game session requiring random outcome (dice roll, loot drop).\n3. Request randomness via VRF coordinator.\n4. Attempt prediction by analyzing blockhash patterns.\n5. Try manipulation via miner MEV or timestamp control.\n6. Verify outcome distribution over 1000 games follows expected probability.",
+          "pass_fail_criteria": "VRF provides unpredictable randomness; manipulation attempts fail; distribution statistically fair ±2% variance."
         },
         {
           "id": "GAMEFI-CORE-2",
           "test_case": "Commit-reveal scheme for hidden information",
-          "detailed_procedure": "• Player commits to a secret (e.g., ship positions, moves)\n• Reveal phase discloses secret\n• Attempt to front-run or reveal early",
-          "pass_fail_criteria": "Secrets remain hidden until reveal; early or invalid reveals revert; no frontrunning possible"
+          "detailed_procedure": "1. Player A commits move via commit(keccak256(move + nonce)).\n2. Player B commits their move similarly.\n3. Reveal phase: both call reveal(move, nonce).\n4. Attempt early reveal before commit phase ends - expect revert.\n5. Try front-running by watching mempool for reveals.\n6. Verify game state only updates after both valid reveals.",
+          "pass_fail_criteria": "Early reveals blocked; front-running provides no advantage; game proceeds only with valid reveals."
         },
         {
           "id": "GAMEFI-CORE-3",
           "test_case": "Player state privacy",
-          "detailed_procedure": "• Store sensitive player data (e.g., hidden positions) in contract\n• Attempt to read or infer data on-chain\n• Verify only authorized parties can access",
-          "pass_fail_criteria": "Sensitive data is not accessible to unauthorized parties; privacy is preserved"
+          "detailed_procedure": "1. Store player hidden cards as commitment hashes.\n2. Attempt storage slot reading via eth_getStorageAt.\n3. Try inferring hidden state from transaction patterns.\n4. Use commitment reveals only when game rules require.\n5. Verify opponent cannot deduce unrevealed information.",
+          "pass_fail_criteria": "Hidden state remains private; storage reading reveals only hashes; inference attacks fail."
         },
         {
           "id": "GAMEFI-CORE-4",
           "test_case": "Front-running resistance",
-          "detailed_procedure": "• Submit a game action (e.g., move, attack)\n• Attempt to front-run with a conflicting action\n• Observe outcome and fairness",
-          "pass_fail_criteria": "Front-running does not provide unfair advantage; actions are processed fairly"
+          "detailed_procedure": "1. Submit a game action (e.g., move, attack).\n2. Attempt to front-run with a conflicting action.\n3. Observe outcome and fairness.",
+          "pass_fail_criteria": "Front-running does not provide unfair advantage; actions are processed fairly."
         },
         {
           "id": "GAMEFI-CORE-5",
           "test_case": "Replay and double-action prevention",
-          "detailed_procedure": "• Submit a valid game action\n• Attempt to replay or duplicate the same action\n• Observe contract response",
-          "pass_fail_criteria": "Replay or duplicate actions are rejected; only first action is processed"
+          "detailed_procedure": "1. Submit a valid game action.\n2. Attempt to replay or duplicate the same action.\n3. Observe contract response.",
+          "pass_fail_criteria": "Replay or duplicate actions are rejected; only first action is processed."
         },
         {
           "id": "GAMEFI-CORE-6",
           "test_case": "Game session isolation",
-          "detailed_procedure": "• Start multiple game sessions (e.g., matches)\n• Attempt to interfere with another session's state\n• Verify session data separation",
-          "pass_fail_criteria": "Sessions are isolated; no cross-session interference possible"
+          "detailed_procedure": "1. Start multiple game sessions (e.g., matches).\n2. Attempt to interfere with another session's state.\n3. Verify session data separation.",
+          "pass_fail_criteria": "Sessions are isolated; no cross-session interference possible."
         },
         {
           "id": "GAMEFI-CORE-7",
           "test_case": "Emergency pause and admin controls",
-          "detailed_procedure": "• Pause contract as admin\n• Attempt core actions while paused\n• Unpause and retry actions",
-          "pass_fail_criteria": "Only admin can pause/unpause; paused actions revert; unpause restores"
+          "detailed_procedure": "1. Pause contract as admin.\n2. Attempt core actions while paused.\n3. Unpause and retry actions.",
+          "pass_fail_criteria": "Only admin can pause/unpause; paused actions revert; unpause restores."
         },
         {
           "id": "GAMEFI-CORE-8",
           "test_case": "Game lobby and matchmaking fairness",
-          "detailed_procedure": "• Join game lobby as multiple players\n• Attempt to manipulate matchmaking (e.g., by timing or sybil)\n• Start match and verify player assignment",
-          "pass_fail_criteria": "Matchmaking is fair; manipulation attempts fail; players assigned as expected"
+          "detailed_procedure": "1. Join game lobby as multiple players.\n2. Attempt to manipulate matchmaking (e.g., by timing or sybil).\n3. Start match and verify player assignment.",
+          "pass_fail_criteria": "Matchmaking is fair; manipulation attempts fail; players assigned as expected."
         }
       ]
     },
@@ -60,32 +60,32 @@
         {
           "id": "GAMEFI-MECH-1",
           "test_case": "Turn order and timing enforcement",
-          "detailed_procedure": "• Players take turns in a game session\n• Attempt to act out of turn or too quickly\n• Attempt to skip turns",
-          "pass_fail_criteria": "Turn order and timing are enforced; out-of-turn or skipped actions revert"
+          "detailed_procedure": "1. Players take turns in a game session.\n2. Attempt to act out of turn or too quickly.\n3. Attempt to skip turns.",
+          "pass_fail_criteria": "Turn order and timing are enforced; out-of-turn or skipped actions revert."
         },
         {
           "id": "GAMEFI-MECH-2",
           "test_case": "Cooldown and rate limiting",
-          "detailed_procedure": "• Perform repeated game actions\n• Attempt actions before cooldown ends\n• Retry after cooldown",
-          "pass_fail_criteria": "Actions only allowed after cooldown; early attempts revert; rate limits enforced"
+          "detailed_procedure": "1. Perform repeated game actions.\n2. Attempt actions before cooldown ends.\n3. Retry after cooldown.",
+          "pass_fail_criteria": "Actions only allowed after cooldown; early attempts revert; rate limits enforced."
         },
         {
           "id": "GAMEFI-MECH-3",
           "test_case": "Reward and payout fairness",
-          "detailed_procedure": "• Complete game actions that trigger rewards\n• Attempt to claim reward multiple times\n• Verify reward distribution logic",
-          "pass_fail_criteria": "Rewards distributed fairly; double claims revert; payout logic is correct"
+          "detailed_procedure": "1. Complete game actions that trigger rewards.\n2. Attempt to claim reward multiple times.\n3. Verify reward distribution logic.",
+          "pass_fail_criteria": "Rewards distributed fairly; double claims revert; payout logic is correct."
         },
         {
           "id": "GAMEFI-MECH-4",
           "test_case": "NFT upgrades and crafting",
-          "detailed_procedure": "• Attempt to upgrade or craft an NFT asset\n• Try with and without required resources\n• Verify upgraded asset properties",
-          "pass_fail_criteria": "Upgrades/crafting require correct inputs; unauthorized attempts revert; asset properties update"
+          "detailed_procedure": "1. Attempt to upgrade or craft an NFT asset.\n2. Try with and without required resources.\n3. Verify upgraded asset properties.",
+          "pass_fail_criteria": "Upgrades/crafting require correct inputs; unauthorized attempts revert; asset properties update."
         },
         {
           "id": "GAMEFI-MECH-5",
           "test_case": "Jackpot and loot box randomness",
-          "detailed_procedure": "• Open loot box or trigger jackpot event\n• Verify randomness source and reward distribution\n• Attempt to predict or manipulate outcome",
-          "pass_fail_criteria": "Rewards are random and fair; manipulation attempts fail"
+          "detailed_procedure": "1. Open loot box or trigger jackpot event.\n2. Verify randomness source and reward distribution.\n3. Attempt to predict or manipulate outcome.",
+          "pass_fail_criteria": "Rewards are random and fair; manipulation attempts fail."
         }
       ]
     },
@@ -95,20 +95,20 @@
         {
           "id": "GAMEFI-PLAYER-1",
           "test_case": "Player identity and anti-sybil",
-          "detailed_procedure": "• Register and play with multiple accounts\n• Attempt to gain advantage via sybil attacks\n• Observe game fairness",
-          "pass_fail_criteria": "Sybil attacks do not provide unfair advantage; identity checks enforced"
+          "detailed_procedure": "1. Register and play with multiple accounts.\n2. Attempt to gain advantage via sybil attacks.\n3. Observe game fairness.",
+          "pass_fail_criteria": "Sybil attacks do not provide unfair advantage; identity checks enforced."
         },
         {
           "id": "GAMEFI-PLAYER-2",
           "test_case": "Leaderboard and ranking integrity",
-          "detailed_procedure": "• Complete actions to gain points\n• Attempt to manipulate ranking via exploits\n• Query leaderboard",
-          "pass_fail_criteria": "Leaderboard reflects true performance; manipulation attempts fail"
+          "detailed_procedure": "1. Complete actions to gain points.\n2. Attempt to manipulate ranking via exploits.\n3. Query leaderboard.",
+          "pass_fail_criteria": "Leaderboard reflects true performance; manipulation attempts fail."
         },
         {
           "id": "GAMEFI-PLAYER-3",
           "test_case": "Player progression and experience tracking",
-          "detailed_procedure": "• Complete actions to gain experience or level up\n• Attempt to bypass progression logic\n• Query player level/experience",
-          "pass_fail_criteria": "Progression reflects true actions; bypass attempts fail; queries return correct state"
+          "detailed_procedure": "1. Complete actions to gain experience or level up.\n2. Attempt to bypass progression logic.\n3. Query player level/experience.",
+          "pass_fail_criteria": "Progression reflects true actions; bypass attempts fail; queries return correct state."
         }
       ]
     },
@@ -118,26 +118,26 @@
         {
           "id": "GAMEFI-SEC-1",
           "test_case": "Reentrancy and callback safety",
-          "detailed_procedure": "• Trigger game actions with external calls or callbacks\n• Attempt reentrancy attacks\n• Observe contract state",
-          "pass_fail_criteria": "Reentrancy is prevented; contract state remains consistent"
+          "detailed_procedure": "1. Trigger game actions with external calls or callbacks.\n2. Attempt reentrancy attacks.\n3. Observe contract state.",
+          "pass_fail_criteria": "Reentrancy is prevented; contract state remains consistent."
         },
         {
           "id": "GAMEFI-SEC-2",
           "test_case": "Upgrade and admin controls",
-          "detailed_procedure": "• Attempt contract upgrade as admin and non-admin\n• Verify state and permissions after upgrade\n• Test core actions post-upgrade",
-          "pass_fail_criteria": "Only admin can upgrade; state and permissions preserved; actions work after upgrade"
+          "detailed_procedure": "1. Attempt contract upgrade as admin and non-admin.\n2. Verify state and permissions after upgrade.\n3. Test core actions post-upgrade.",
+          "pass_fail_criteria": "Only admin can upgrade; state and permissions preserved; actions work after upgrade."
         },
         {
           "id": "GAMEFI-SEC-3",
           "test_case": "External randomness/oracle integration",
-          "detailed_procedure": "• Integrate with external randomness or oracle\n• Simulate oracle failure or manipulation\n• Observe game outcome",
-          "pass_fail_criteria": "Oracle failures handled safely; manipulation attempts fail; game remains fair"
+          "detailed_procedure": "1. Integrate with external randomness or oracle.\n2. Simulate oracle failure or manipulation.\n3. Observe game outcome.",
+          "pass_fail_criteria": "Oracle failures handled safely; manipulation attempts fail; game remains fair."
         },
         {
           "id": "GAMEFI-SEC-4",
           "test_case": "Sensitive information leakage via events",
-          "detailed_procedure": "• Trigger game actions that emit events\n• Analyze emitted events for sensitive data\n• Attempt to reconstruct hidden state from logs",
-          "pass_fail_criteria": "No sensitive player data is leaked in events; hidden state remains private"
+          "detailed_procedure": "1. Trigger game actions that emit events.\n2. Analyze emitted events for sensitive data.\n3. Attempt to reconstruct hidden state from logs.",
+          "pass_fail_criteria": "No sensitive player data is leaked in events; hidden state remains private."
         }
       ]
     },

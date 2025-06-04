@@ -1,6 +1,6 @@
 {
-  "protocol": "Yield Aggregators / Vaults Security Tests",
-  "tags": [
+  "tag": "Vaults",
+  "categories": [
     {
       "tag": "Yearn-style Vault",
       "test_cases": [
@@ -583,6 +583,23 @@
           "test_case": "No front-running of LP token deposits",
           "detailed_procedure": "Attempt to front-run LP token deposits to manipulate vault share pricing.",
           "pass_fail_criteria": "Pass if front-running is prevented; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "ERC-4626 Vault",
+      "test_cases": [
+        {
+          "id": "VAULT-ERC4626-01",
+          "test_case": "Share inflation attack prevention",
+          "detailed_procedure": "1. Deploy ERC-4626 vault for USDC.\n2. Attacker deposits 1 wei USDC, receives 1 share.\n3. Attacker donates 1e6 USDC directly to vault (bypasses deposit).\n4. Victim deposits 1.5e6 USDC.\n5. Calculate victim's shares: should get >0 shares, not 0 due to rounding.\n6. Test with virtual shares/assets protection.",
+          "pass_fail_criteria": "Share inflation attacks fail; minimal deposit protection works; victims receive fair share allocation."
+        },
+        {
+          "id": "VAULT-ERC4626-02",
+          "test_case": "Precision loss in share calculations",
+          "detailed_procedure": "1. Deploy vaults for tokens with different decimals: USDC(6), WBTC(8), WETH(18).\n2. Deposit amounts near precision boundaries: 1 wei, 1e3, 1e18.\n3. Calculate expected shares using convertToShares().\n4. Compare with actual minted shares.\n5. Test redemption round-trips for consistency.",
+          "pass_fail_criteria": "Share calculations accurate ±1 wei across all decimal configurations; round-trip consistency maintained."
         }
       ]
     }

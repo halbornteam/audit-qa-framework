@@ -1,13 +1,13 @@
 {
-  "protocol": "Move-based Chains Security Tests",
-  "tags": [
+  "tag": "Move",
+  "categories": [
     {
       "tag": "Move language generic test cases",
       "test_cases": [
         {
           "id": "MOVE-MOV-01",
           "test_case": "Object-ownership check",
-          "detailed_procedure": "Mint an object<T> for Account A. From Account B, call a state-changing entry function that requires ownership, passing A’s object.",
+          "detailed_procedure": "Mint an object<T> for Account A. From Account B, call a state-changing entry function that requires ownership, passing A's object.",
           "pass_fail_criteria": "Transaction should abort because object::owner(&obj) ≠ address_of(&signer)."
         },
         {
@@ -27,6 +27,18 @@
           "test_case": "Ability misuse (copy / drop / store)",
           "detailed_procedure": "Locate a struct with overly permissive abilities. Attempt to exploit those abilities: clone, silent-drop, or move_to global storage.",
           "pass_fail_criteria": "Exploit should be blocked; if it executes successfully, the struct's abilities are misconfigured."
+        },
+        {
+          "id": "MOVE-LS-01",
+          "test_case": "Resource ownership enforcement",
+          "detailed_procedure": "1. Define resource struct Coin { value: u64 }.\n2. Create function that attempts to copy resource via copy operator.\n3. Expect compile-time error: resource types cannot be copied.\n4. Test move semantics: transfer resource between variables.\n5. Attempt to use resource after move - expect borrow checker error.\n6. Verify resource must be explicitly destroyed or stored.",
+          "pass_fail_criteria": "Copy operations on resources blocked at compile-time; move semantics enforced; no use-after-move."
+        },
+        {
+          "id": "MOVE-LS-02",
+          "test_case": "Reference safety validation",
+          "detailed_procedure": "1. Create mutable reference: let coin_ref = &mut coin.\n2. Attempt to create second mutable reference to same resource.\n3. Expect compile error: cannot borrow as mutable more than once.\n4. Test immutable references: create multiple &coin refs.\n5. Verify reference lifetime doesn't exceed resource lifetime.\n6. Test global reference invalidation on resource move.",
+          "pass_fail_criteria": "Borrow checker prevents multiple mutable refs; reference lifetimes validated; no dangling references."
         }
       ]
     },

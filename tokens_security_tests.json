@@ -1,44 +1,44 @@
 {
-  "protocol": "Token Contract Security Tests",
-  "tags": [
+  "tag": "Tokens",
+  "categories": [
     {
       "tag": "ERC-20",
       "test_cases": [
         {
           "id": "TOKEN-20-01",
           "test_case": "Transfer validation",
-          "detailed_procedure": "\u2022 Transfer more tokens than balance\u2022 Transfer to zero address\u2022 Transfer zero amount\u2022 Verify balance updates and Transfer event emission",
-          "pass_fail_criteria": "Insufficient balance reverts; zero address transfers handled per spec; events emitted correctly"
+          "detailed_procedure": "1. Deploy ERC-20 with user balance = 1000 tokens.\n2. Attempt transfer(recipient, 1001) - expect revert InsufficientBalance.\n3. Attempt transfer(address(0), 100) - expect revert or success per implementation.\n4. Call transfer(recipient, 0) and verify it succeeds or reverts per spec.\n5. Perform valid transfer(recipient, 500) and verify balances update.\n6. Check Transfer(sender, recipient, 500) event emitted.",
+          "pass_fail_criteria": "Over-balance transfers revert; zero-address handling per spec; zero-amount transfers handled consistently; valid transfers update balances and emit events."
         },
         {
           "id": "TOKEN-20-02",
           "test_case": "Allowance mechanism",
-          "detailed_procedure": "\u2022 Approve spender for specific amount\u2022 Attempt transferFrom exceeding allowance\u2022 Attempt transferFrom according to allowance",
-          "pass_fail_criteria": "TransferFrom reverts when allowance exceeded and succeeds when transfer is according to it"
+          "detailed_procedure": "1. Owner calls approve(spender, 200).\n2. Verify allowance(owner, spender) returns 200.\n3. Spender attempts transferFrom(owner, recipient, 201) - expect revert InsufficientAllowance.\n4. Spender calls transferFrom(owner, recipient, 150) successfully.\n5. Verify allowance decreased to 50.\n6. Test infinite allowance (type(uint256).max) behavior.",
+          "pass_fail_criteria": "Allowance mechanism enforced; transfers within allowance succeed; allowance decrements correctly; infinite allowance handled per spec."
         },
         {
           "id": "TOKEN-20-03",
           "test_case": "Integer overflow/underflow",
-          "detailed_procedure": "\u2022 Test transfers near uint256 max values\u2022 Approve maximum uint256 allowance\u2022 Test totalSupply overflow scenarios",
-          "pass_fail_criteria": "All arithmetic operations safe; no wrap-around behavior; appropriate reverts on overflow"
+          "detailed_procedure": "1. Set user balance to type(uint256).max - 1.\n2. Attempt transfer receiving type(uint256).max causing balance overflow.\n3. Expect revert or SafeMath protection.\n4. Test approve(spender, type(uint256).max).\n5. Verify transferFrom handles max allowance correctly.\n6. Test totalSupply near max values during mint operations.",
+          "pass_fail_criteria": "Overflow conditions revert with SafeMath or Solidity >=0.8.0 protection; no silent wrap-around; arithmetic operations safe."
         },
         {
           "id": "TOKEN-20-04",
           "test_case": "Decimals work properly",
-          "detailed_procedure": "\u2022 Verify decimals() returns consistent value",
-          "pass_fail_criteria": "Decimals immutable and consistent; fractional transfers work correctly"
+          "detailed_procedure": "1. Call decimals() multiple times and verify consistent return value.\n2. Deploy with decimals=6, transfer 1.5 token units (1500000 wei).\n3. Verify balance accounting correct at wei level.\n4. Test precision in calculations involving decimals.\n5. Verify decimals cannot be changed post-deployment.",
+          "pass_fail_criteria": "decimals() returns consistent value; precision maintained in transfers; value immutable post-deployment."
         },
         {
           "id": "TOKEN-20-05",
           "test_case": "Return value validation",
-          "detailed_procedure": "\u2022 Verify transfer() returns boolean\u2022 Test transferFrom() return value\u2022 Check approve() return value\u2022 Validate against ERC-20 specification compliance",
-          "pass_fail_criteria": "All functions return correct boolean values per ERC-20 spec"
+          "detailed_procedure": "1. Call transfer() and verify returns true on success.\n2. Call transferFrom() and verify returns true on success.\n3. Call approve() and verify returns true.\n4. Test failed operations return false (if not reverting).\n5. Verify compliance with ERC-20 spec requirements.",
+          "pass_fail_criteria": "All functions return appropriate boolean values per ERC-20 specification; consistent return value behavior."
         },
         {
           "id": "TOKEN-20-06",
           "test_case": "Self-transfer does not duplicate balance",
-          "detailed_procedure": "\u2022 User transfers tokens to himself\u2022 Compare the before and after balance",
-          "pass_fail_criteria": "Balance must be the same, incorrect implementation can cause balance duplication"
+          "detailed_procedure": "1. Set user balance to 1000 tokens.\n2. Record balance before self-transfer.\n3. User calls transfer(own_address, 500).\n4. Verify balance remains 1000 tokens.\n5. Check Transfer event emitted correctly.\n6. Test with different self-transfer amounts.",
+          "pass_fail_criteria": "Self-transfers maintain exact balance; no duplication or loss; events emitted correctly."
         }
       ]
     },
@@ -48,20 +48,20 @@
         {
           "id": "TOKEN-777-01",
           "test_case": "Operator authorization",
-          "detailed_procedure": "\u2022 Authorize operator for token holder\u2022 Test operatorSend() functionality\u2022 Revoke operator authorization\u2022 Verify unauthorized operator cannot send\u2022 Test default operators",
-          "pass_fail_criteria": "Only authorized operators can send; authorization/revocation works; default operators respected"
+          "detailed_procedure": "1. Deploy ERC-777 with default operators list.\n2. Token holder calls authorizeOperator(operator_addr).\n3. Operator calls operatorSend(holder, recipient, amount, data, operatorData).\n4. Verify transfer succeeds and events emitted.\n5. Holder calls revokeOperator(operator_addr).\n6. Operator attempts operatorSend() again - expect revert NotAnOperator.\n7. Test default operators bypass authorization.",
+          "pass_fail_criteria": "Authorized operators can send; revoked operators blocked; default operators function without explicit authorization."
         },
         {
           "id": "TOKEN-777-02",
           "test_case": "ERC-20 backwards compatibility",
-          "detailed_procedure": "\u2022 Call ERC-20 functions (transfer, approve, transferFrom)\u2022 Verify ERC-777 and ERC-20 state consistency\u2022 Test mixed usage of both interfaces\u2022 Check event emissions for both standards",
-          "pass_fail_criteria": "Full ERC-20 compatibility maintained; state consistent across interfaces"
+          "detailed_procedure": "1. Deploy ERC-777 token.\n2. Call ERC-20 transfer() and verify ERC-777 hooks triggered.\n3. Use approve() + transferFrom() flow and verify compatibility.\n4. Mix ERC-777 send() with ERC-20 transfer() calls.\n5. Verify both Transfer and Sent events emitted appropriately.\n6. Check balances consistent across both interfaces.",
+          "pass_fail_criteria": "Full ERC-20 compatibility; hooks triggered for ERC-20 calls; consistent state across interfaces; dual event emission."
         },
         {
           "id": "TOKEN-777-03",
           "test_case": "Re-entrancy protection",
-          "detailed_procedure": "\u2022 Create malicious hook that attempts re-entrant send\u2022 Test hook calling other token functions\u2022 Verify contract state during hook execution",
-          "pass_fail_criteria": "Re-entrancy attacks blocked; state remains consistent during hooks"
+          "detailed_procedure": "1. Deploy malicious contract implementing tokensReceived hook.\n2. Hook attempts to call send() back to token contract.\n3. Verify either reentrancy guard blocks call or state remains consistent.\n4. Test hook calling approve(), transfer() during receive.\n5. Monitor contract state before/after hook execution.\n6. Ensure no double-spending or balance corruption.",
+          "pass_fail_criteria": "Reentrancy attacks fail or state protection works; no double-spending; consistent balances maintained."
         }
       ]
     },
@@ -71,32 +71,32 @@
         {
           "id": "TOKEN-1155-01",
           "test_case": "Multi-token transfers",
-          "detailed_procedure": "\u2022 Transfer single token type\u2022 Batch transfer multiple token types\u2022 Transfer to multiple recipients\u2022 Verify balance updates for all token IDs",
-          "pass_fail_criteria": "All transfers execute correctly; balances update accurately"
+          "detailed_procedure": "1. Mint tokens: 100 of ID=1, 200 of ID=2, 300 of ID=3.\n2. Call safeTransferFrom(from, to, 1, 50, data) for single token.\n3. Verify balanceOf(to, 1) = 50 and balanceOf(from, 1) = 50.\n4. Call safeBatchTransferFrom with IDs=[2,3], amounts=[100,150].\n5. Verify batch transfer updates all balances correctly.\n6. Check TransferSingle and TransferBatch events emitted.",
+          "pass_fail_criteria": "Single and batch transfers work; all balances update accurately; appropriate events emitted."
         },
         {
           "id": "TOKEN-1155-02",
           "test_case": "Approval management",
-          "detailed_procedure": "\u2022 Set approval for all tokens\u2022 Test operator transfers with approval\u2022 Revoke approval and verify transfers fail",
-          "pass_fail_criteria": "Approval system works correctly; operators can transfer when approved"
+          "detailed_procedure": "1. Owner calls setApprovalForAll(operator, true).\n2. Verify isApprovedForAll(owner, operator) returns true.\n3. Operator performs safeTransferFrom on owner's tokens.\n4. Verify transfer succeeds.\n5. Owner calls setApprovalForAll(operator, false).\n6. Operator attempts transfer - expect revert CallerNotOwnerNorApproved.",
+          "pass_fail_criteria": "Approval system enforced; approved operators can transfer; revoked operators blocked."
         },
         {
           "id": "TOKEN-1155-03",
           "test_case": "Safe transfer validation",
-          "detailed_procedure": "\u2022 Transfer to contract implementing onERC1155Received\u2022 Transfer to contract without receiver function\u2022 Verify recipient validation for EOAs vs contracts",
-          "pass_fail_criteria": "Safe transfers succeed only when receiver is an EOA or when it is a contract implementing the callback function"
+          "detailed_procedure": "1. Deploy receiver contract implementing onERC1155Received returning magic value.\n2. Transfer token to receiver contract - expect success.\n3. Deploy non-receiver contract without callback.\n4. Transfer to non-receiver - expect revert TransferToNonERC1155ReceiverImplementer.\n5. Transfer to EOA address - expect success.\n6. Test batch transfers follow same validation.",
+          "pass_fail_criteria": "Transfers to EOAs succeed; transfers to receiver contracts succeed; transfers to non-receiver contracts fail."
         },
         {
           "id": "TOKEN-1155-04",
           "test_case": "URI metadata handling",
-          "detailed_procedure": "\u2022 Query URI for existing token ID",
-          "pass_fail_criteria": "URIs return correctly"
+          "detailed_procedure": "1. Deploy with base URI pattern 'https://api.game/{id}.json'.\n2. Call uri(123) and verify returns 'https://api.game/123.json'.\n3. Test with different token IDs including large numbers.\n4. Verify {id} substitution works correctly.\n5. Test URI updates if supported by implementation.",
+          "pass_fail_criteria": "URI formatting correct; {id} substitution works; consistent URI generation."
         },
         {
           "id": "TOKEN-1155-05",
           "test_case": "Safe from reentrancies",
-          "detailed_procedure": "\u2022 Create malicious hook\u2022 Reenter into contract functions\u2022 Make sure state remains consistent or reverts",
-          "pass_fail_criteria": "State must remain consistent or revert"
+          "detailed_procedure": "1. Deploy malicious receiver that reenters on onERC1155Received.\n2. Transfer token triggering malicious callback.\n3. Callback attempts to call safeTransferFrom again.\n4. Verify either reentrancy guard blocks or state consistent.\n5. Test multiple reentry vectors (batch transfers, approvals).\n6. Ensure no balance corruption or double-transfers.",
+          "pass_fail_criteria": "Reentrancy attacks fail or state protection effective; no balance corruption; consistent state maintained."
         }
       ]
     },
@@ -106,20 +106,20 @@
         {
           "id": "TOKEN-W-01",
           "test_case": "Deposit/withdraw equivalence",
-          "detailed_procedure": "\u2022 Deposit native token, verify wrapped token minted\u2022 Withdraw wrapped token, verify native token returned\u2022 Test 1:1 exchange rate maintained",
-          "pass_fail_criteria": "Perfect 1:1 exchange rate is maintained"
+          "detailed_procedure": "1. Check initial ETH balance and WETH balance of user.\n2. Call deposit() with 5 ETH, verify 5 WETH minted.\n3. Verify ETH balance decreased by exactly 5 ETH.\n4. Call withdraw(3 ether) to unwrap 3 WETH.\n5. Verify 3 ETH returned and 3 WETH burned.\n6. Confirm final balances: original_ETH - 2, original_WETH + 2.",
+          "pass_fail_criteria": "Perfect 1:1 exchange rate maintained; no value lost in conversion; balances track exactly."
         },
         {
           "id": "TOKEN-W-02",
           "test_case": "Fallback function behavior",
-          "detailed_procedure": "\u2022 Send native token directly to contract address\u2022 Verify automatic wrapping occurs",
-          "pass_fail_criteria": "Directly transferring to contract must automatically trigger wrapping"
+          "detailed_procedure": "1. Send 2 ETH directly to WETH contract via transfer.\n2. Verify 2 WETH automatically minted to sender.\n3. Check Deposit event emitted with correct parameters.\n4. Test with different ETH amounts via fallback.\n5. Verify no ETH stuck in contract uncommitted.",
+          "pass_fail_criteria": "Fallback/receive function automatically wraps ETH; correct WETH minted; events emitted."
         },
         {
           "id": "TOKEN-W-03",
           "test_case": "Reentrancy in withdraw",
-          "detailed_procedure": "\u2022 Create malicious contract that reenters on withdraw\u2022 Reentrancies fail or state remains consistent",
-          "pass_fail_criteria": "Reentrancy must fail or the state must remain consistent"
+          "detailed_procedure": "1. Deploy malicious contract with receive() that calls withdraw() again.\n2. Malicious contract deposits 1 ETH and gets 1 WETH.\n3. Call withdraw(1 ether) triggering reentrancy attempt.\n4. Verify either reentrancy guard blocks second withdraw or state consistent.\n5. Check final balances: no double-withdrawal occurred.\n6. Ensure contract ETH balance matches total WETH supply.",
+          "pass_fail_criteria": "Reentrancy blocked or state remains consistent; no double-withdrawal; balances correct."
         }
       ]
     },
@@ -129,26 +129,26 @@
         {
           "id": "TOKEN-B-01",
           "test_case": "Self-burn functionality",
-          "detailed_procedure": "\u2022 Burn tokens from own balance\u2022 Attempt to burn more than balance\u2022 Verify totalSupply decreases correctly",
-          "pass_fail_criteria": "Burns succeed within balance and fails when burning more than balance; totalSupply updated"
+          "detailed_procedure": "1. User holds 1000 tokens initially.\n2. Call burn(300) and verify user balance becomes 700.\n3. Verify totalSupply decreased by exactly 300.\n4. Attempt burn(800) - expect revert InsufficientBalance.\n5. Check Transfer(user, address(0), 300) event emitted.\n6. Verify burn(700) succeeds, leaving balance = 0.",
+          "pass_fail_criteria": "Burns within balance succeed; over-balance burns revert; totalSupply tracks correctly; events emitted."
         },
         {
           "id": "TOKEN-B-02",
           "test_case": "Burn authorization",
-          "detailed_procedure": "\u2022 Burn tokens from approved allowance\u2022 Test burnFrom without approval\u2022 Verify allowance decreases after burn\u2022 Test approval edge cases (infinite allowance)",
-          "pass_fail_criteria": "Only authorized burns succeed; allowances updated correctly; burning with an infinite approval does not decrease allowance"
+          "detailed_procedure": "1. TokenHolder approves Burner for 500 tokens.\n2. Burner calls burnFrom(TokenHolder, 200).\n3. Verify TokenHolder balance decreased by 200, allowance now 300.\n4. Burner attempts burnFrom(TokenHolder, 400) - expect revert InsufficientAllowance.\n5. Test infinite allowance: approve(type(uint256).max), burn, verify allowance unchanged.\n6. Test burnFrom without approval - expect revert.",
+          "pass_fail_criteria": "Authorized burns succeed; unauthorized burns fail; allowances updated correctly; infinite allowance preserved."
         },
         {
           "id": "TOKEN-B-03",
           "test_case": "Burn rate limiting",
-          "detailed_procedure": "\u2022 Test burn amount limits per transaction\u2022 Verify burn cooldown periods",
-          "pass_fail_criteria": "If there are burn limits, make sure they are enforced"
+          "detailed_procedure": "1. Set burn limit to 100 tokens per transaction.\n2. Attempt burn(150) - expect revert ExceedsBurnLimit.\n3. Successfully burn(100).\n4. Immediately attempt another burn(50) - verify cooldown enforced if implemented.\n5. Wait for cooldown period and retry burn.\n6. Test daily/weekly burn caps if implemented.",
+          "pass_fail_criteria": "Burn limits enforced per transaction; cooldown periods respected; caps prevent excessive burning."
         },
         {
           "id": "TOKEN-B-04",
           "test_case": "Burn impact on holders",
-          "detailed_procedure": "\u2022 Burn tokens and verify holder percentages increase\u2022 Test burn impact on reward distributions\u2022 Verify burn doesn't affect other holders' balances directly\u2022 Check proportional ownership changes",
-          "pass_fail_criteria": "Burn increases remaining holder percentages; no direct balance changes to others"
+          "detailed_procedure": "1. Total supply = 1000, Alice = 300, Bob = 700.\n2. Alice burns 100 tokens.\n3. Verify: totalSupply = 900, Alice = 200, Bob = 700.\n4. Calculate ownership: Alice = 200/900 = 22.2%, Bob = 700/900 = 77.8%.\n5. Test burn impact on reward calculations if applicable.\n6. Verify no other holder balances changed directly.",
+          "pass_fail_criteria": "Burn increases remaining holders' percentage ownership; no direct impact on other balances; proportional changes correct."
         }
       ]
     },
@@ -158,20 +158,20 @@
         {
           "id": "TOKEN-M-01",
           "test_case": "Mint authorization",
-          "detailed_procedure": "\u2022 Mint tokens from authorized minter account\u2022 Attempt mint from unauthorized account\u2022 Test role-based minting permissions\u2022 Verify minter role assignment/revocation",
-          "pass_fail_criteria": "Only authorized accounts can mint; role management works correctly"
+          "detailed_procedure": "1. Deploy with Owner having MINTER_ROLE.\n2. Owner mints 1000 tokens to Alice successfully.\n3. Bob attempts mint(Alice, 500) - expect revert AccessControlUnauthorizedAccount.\n4. Owner grants MINTER_ROLE to Bob.\n5. Bob successfully mints 300 tokens to Charlie.\n6. Owner revokes Bob's MINTER_ROLE and Bob's mint attempts fail.",
+          "pass_fail_criteria": "Only authorized minters can mint; role assignment/revocation works; access control enforced."
         },
         {
           "id": "TOKEN-M-02",
           "test_case": "Mint supply tracking",
-          "detailed_procedure": "\u2022 Mint tokens and verify totalSupply increases\u2022 Test minting to zero address\u2022 Verify recipient balance increases correctly",
-          "pass_fail_criteria": "TotalSupply tracks mints accurately; balances update correctly; events emitted"
+          "detailed_procedure": "1. Initial totalSupply = 0.\n2. Mint 500 tokens to Alice, verify totalSupply = 500, Alice balance = 500.\n3. Mint 300 tokens to Bob, verify totalSupply = 800.\n4. Attempt mint(address(0), 100) - expect revert or success per implementation.\n5. Check Transfer(address(0), recipient, amount) events emitted.\n6. Verify arithmetic: sum of all balances = totalSupply.",
+          "pass_fail_criteria": "totalSupply tracking accurate; recipient balances correct; appropriate events emitted; zero address handling per spec."
         },
         {
           "id": "TOKEN-M-03",
           "test_case": "Mint rate limiting",
-          "detailed_procedure": "\u2022 Test mint amount limits per transaction\u2022 Verify mint cooldown periods",
-          "pass_fail_criteria": "If there are mint limits, make sure they are enforced"
+          "detailed_procedure": "1. Set mint limit to 1000 tokens per transaction.\n2. Attempt mint(Alice, 1500) - expect revert ExceedsMintLimit.\n3. Successfully mint(Alice, 1000).\n4. Immediately attempt second mint - verify cooldown enforced if implemented.\n5. Test daily/weekly mint caps if applicable.\n6. Verify limits apply per minter or globally as designed.",
+          "pass_fail_criteria": "Mint limits enforced per transaction; cooldown periods respected; caps prevent excessive minting."
         }
       ]
     },
@@ -181,14 +181,14 @@
         {
           "id": "TOKEN-P-01",
           "test_case": "Pause functionality",
-          "detailed_procedure": "\u2022 Pause contract from authorized account\u2022 Attempt transfers while paused\u2022 Test minting/burning while paused\u2022 Verify pause state queries",
-          "pass_fail_criteria": "All token operations halt when paused"
+          "detailed_procedure": "1. Contract deployed in unpaused state.\n2. Authorized admin calls pause().\n3. Verify paused() returns true.\n4. Attempt transfer(recipient, 100) - expect revert Pausable: paused.\n5. Attempt mint() and burn() operations - expect reverts.\n6. Admin calls unpause() and verify operations resume.",
+          "pass_fail_criteria": "Pause halts all token operations; unpause restores functionality; state queries accurate."
         },
         {
           "id": "TOKEN-P-02",
           "test_case": "Pause authorization",
-          "detailed_procedure": "\u2022 Attempt pause from unauthorized account\u2022 Test role-based pause permissions\u2022 Verify unpause authorization requirements\u2022 Test emergency pause mechanisms",
-          "pass_fail_criteria": "Only authorized accounts can pause/unpause; emergency mechanisms work"
+          "detailed_procedure": "1. Non-admin attempts pause() - expect revert AccessControlUnauthorizedAccount.\n2. Admin successfully calls pause().\n3. Non-admin attempts unpause() - expect revert.\n4. Admin successfully calls unpause().\n5. Test emergency pause from designated emergency role if implemented.\n6. Verify timelock delays for unpause if required.",
+          "pass_fail_criteria": "Only authorized accounts can pause/unpause; unauthorized attempts blocked; emergency mechanisms work correctly."
         }
       ]
     },
@@ -198,20 +198,20 @@
         {
           "id": "TOKEN-U-01",
           "test_case": "Storage layout preservation",
-          "detailed_procedure": "\u2022 Deploy initial implementation with user balances\u2022 Upgrade to new implementation\u2022 Verify all balances and allowances preserved\u2022 Test storage slot collision detection",
-          "pass_fail_criteria": "All storage preserved across upgrades; no data corruption or loss"
+          "detailed_procedure": "1. Deploy upgradeable token with Alice=1000, Bob=500 tokens.\n2. Set allowance: Alice approves Charlie for 200 tokens.\n3. Upgrade to new implementation with additional features.\n4. Verify balances: Alice=1000, Bob=500 unchanged.\n5. Verify allowance(Alice, Charlie) = 200 preserved.\n6. Test new implementation functions work correctly.",
+          "pass_fail_criteria": "All balances and allowances preserved; no storage corruption; upgrade successful; new features functional."
         },
         {
           "id": "TOKEN-U-02",
           "test_case": "Upgrade authorization",
-          "detailed_procedure": "\u2022 Attempt upgrade from unauthorized account\u2022 Verify timelock delays for upgrades",
-          "pass_fail_criteria": "Only authorized accounts can upgrade; security measures enforced"
+          "detailed_procedure": "1. Non-admin attempts upgradeToAndCall() - expect revert.\n2. Admin proposes upgrade with timelock delay.\n3. Attempt to execute upgrade before timelock expires - expect revert.\n4. Wait for timelock period and successfully execute upgrade.\n5. Verify new implementation active.\n6. Test multisig requirements if implemented.",
+          "pass_fail_criteria": "Unauthorized upgrades blocked; timelock enforced; multisig requirements met; only valid upgrades succeed."
         },
         {
           "id": "TOKEN-U-03",
           "test_case": "Initialization protection",
-          "detailed_procedure": "\u2022 Call initialize() on implementation contract\u2022 Attempt to initialize proxy multiple times\u2022 Test initialization with different parameters\u2022 Verify initializer modifiers work correctly",
-          "pass_fail_criteria": "Implementation cannot be initialized; proxy initializes only once"
+          "detailed_procedure": "1. Attempt initialize() on implementation contract directly - expect revert.\n2. Deploy proxy and call initialize(name, symbol, decimals) successfully.\n3. Attempt second initialize() call - expect revert Initializable: contract is already initialized.\n4. Verify initialization parameters set correctly.\n5. Test initialize() with different parameters fails.\n6. Verify initializer modifiers prevent re-initialization.",
+          "pass_fail_criteria": "Implementation protected from direct initialization; proxy initializes once only; parameters set correctly; re-initialization blocked."
         }
       ]
     },
@@ -221,20 +221,20 @@
         {
           "id": "TOKEN-S-01",
           "test_case": "Snapshot creation accuracy",
-          "detailed_procedure": "\u2022 Create snapshot at specific block\u2022 Verify all current balances captured\u2022 Test snapshot after token transfers",
-          "pass_fail_criteria": "Snapshots capture exact state at creation time"
+          "detailed_procedure": "1. Set initial balances: Alice=1000, Bob=500, Charlie=300.\n2. Call snapshot() and record returned snapshot ID.\n3. Perform transfers: Alice→Bob 200 tokens.\n4. Query balanceOfAt(Alice, snapshotId) - expect 1000.\n5. Query balanceOfAt(Bob, snapshotId) - expect 500.\n6. Verify current balances differ from snapshot.",
+          "pass_fail_criteria": "Snapshot captures exact balances at creation time; subsequent transfers don't affect historical data; queries return accurate historical balances."
         },
         {
           "id": "TOKEN-S-02",
           "test_case": "Historical balance queries",
-          "detailed_procedure": "\u2022 Query balance at various snapshot IDs\u2022 Verify historical data accuracy\u2022 Test queries for non-existent snapshots",
-          "pass_fail_criteria": "Historical queries return accurate data; error handling for invalid snapshots"
+          "detailed_procedure": "1. Create snapshots at different points: ID1, ID2, ID3.\n2. Query balanceOfAt(user, ID2) for various users.\n3. Verify returned values match balances when ID2 created.\n4. Query balanceOfAt(user, 999) for non-existent snapshot - expect revert or 0.\n5. Test totalSupplyAt() for historical total supply.\n6. Verify queries efficient for large snapshot counts.",
+          "pass_fail_criteria": "Historical queries accurate; non-existent snapshots handled correctly; efficient query performance; totalSupply historical tracking works."
         },
         {
           "id": "TOKEN-S-03",
           "test_case": "Snapshot authorization",
-          "detailed_procedure": "\u2022 Create snapshot from authorized account\u2022 Attempt snapshot creation from unauthorized account\u2022 Test automated snapshot triggers\u2022 Verify snapshot creation permissions",
-          "pass_fail_criteria": "Only authorized accounts can create snapshots; automated triggers work"
+          "detailed_procedure": "1. Authorized admin calls snapshot() successfully.\n2. Unauthorized user attempts snapshot() - expect revert AccessControlUnauthorizedAccount.\n3. Test automated snapshot triggers (e.g., before governance votes).\n4. Verify snapshot creation events emitted with ID.\n5. Test snapshot frequency limits if implemented.\n6. Verify snapshot role assignment/revocation.",
+          "pass_fail_criteria": "Snapshot creation restricted to authorized accounts; automated triggers work; events emitted; role management functional."
         }
       ]
     },
@@ -244,20 +244,20 @@
         {
           "id": "TOKEN-D-01",
           "test_case": "Burn tax calculation",
-          "detailed_procedure": "\u2022 Transfer tokens and verify burn tax applied\u2022 Test tax calculation accuracy\u2022 Verify tax amount burned vs sent to recipient\u2022 Check tax exemptions for specific addresses",
-          "pass_fail_criteria": "Tax calculated correctly; appropriate amount burned; exemptions work"
+          "detailed_procedure": "1. Set burn tax rate to 2% on transfers.\n2. Alice transfers 1000 tokens to Bob.\n3. Verify Bob receives 980 tokens (98%).\n4. Verify 20 tokens burned (2%), reducing totalSupply.\n5. Add Charlie to tax exemption list.\n6. Charlie transfers 1000 tokens with no burn tax applied.",
+          "pass_fail_criteria": "Burn tax calculated accurately; correct amount burned; recipient receives net amount; exemptions work correctly."
         },
         {
           "id": "TOKEN-D-02",
           "test_case": "Tax rate adjustment",
-          "detailed_procedure": "\u2022 Modify burn tax rate via governance/owner\u2022 Test rate bounds and validation\u2022 Verify rate changes affect future transfers",
-          "pass_fail_criteria": "Rate changes applied correctly; bounds enforced"
+          "detailed_procedure": "1. Initial burn tax rate = 1%.\n2. Owner calls setBurnTaxRate(3%).\n3. Verify new transfers use 3% burn rate.\n4. Attempt setBurnTaxRate(15%) - expect revert if exceeds maximum.\n5. Test setBurnTaxRate(0) to disable burning.\n6. Verify rate changes emit events and take effect immediately.",
+          "pass_fail_criteria": "Rate changes applied to future transfers; bounds validation enforced; events emitted; immediate effect."
         },
         {
           "id": "TOKEN-D-03",
           "test_case": "Supply deflation tracking",
-          "detailed_procedure": "\u2022 Monitor totalSupply over multiple taxed transfers\u2022 Verify deflation rate matches tax rate",
-          "pass_fail_criteria": "Supply decreases at expected rate"
+          "detailed_procedure": "1. Initial totalSupply = 100,000 tokens, burn rate = 2%.\n2. Execute 100 transfers of 100 tokens each.\n3. Expected burned: 100 * 100 * 0.02 = 200 tokens.\n4. Verify totalSupply decreased to 99,800.\n5. Calculate deflation rate over time period.\n6. Compare actual vs expected deflation rate.",
+          "pass_fail_criteria": "Actual deflation matches expected rate based on transfer volume and tax rate; totalSupply tracking accurate."
         }
       ]
     },
@@ -267,20 +267,20 @@
         {
           "id": "TOKEN-SC-01",
           "test_case": "Maximum supply enforcement",
-          "detailed_procedure": "\u2022 Set maximum supply cap\u2022 Mint tokens approaching the cap\u2022 Attempt to mint beyond cap\u2022 Verify minting stops exactly at cap",
-          "pass_fail_criteria": "Minting impossible beyond cap; exact cap limit enforced"
+          "detailed_procedure": "1. Deploy with maxSupply = 1,000,000 tokens.\n2. Mint 999,900 tokens successfully.\n3. Mint additional 50 tokens - expect revert SupplyCapExceeded.\n4. Mint exactly 100 tokens to reach cap.\n5. Attempt any further minting - expect revert.\n6. Verify totalSupply() = maxSupply exactly.",
+          "pass_fail_criteria": "Minting blocked at exact cap; no over-minting possible; cap enforcement precise."
         },
         {
           "id": "TOKEN-SC-02",
           "test_case": "Cap modification restrictions",
-          "detailed_procedure": "\u2022 Attempt to increase cap from unauthorized account\u2022 Test cap decrease below current supply\u2022 Verify cap change authorization requirements",
-          "pass_fail_criteria": "Cap changes properly authorized; cannot decrease below current supply"
+          "detailed_procedure": "1. Current supply = 500,000, cap = 1,000,000.\n2. Unauthorized user attempts setMaxSupply(1,200,000) - expect revert.\n3. Admin attempts setMaxSupply(400,000) - expect revert (below current supply).\n4. Admin successfully calls setMaxSupply(800,000).\n5. Verify new cap effective for future mints.\n6. Test immutable cap if designed that way.",
+          "pass_fail_criteria": "Unauthorized cap changes blocked; cap cannot decrease below current supply; authorized changes work."
         },
         {
           "id": "TOKEN-SC-03",
           "test_case": "Supply tracking accuracy",
-          "detailed_procedure": "\u2022 Verify totalSupply tracking with mints/burns",
-          "pass_fail_criteria": "Supply tracking accurate"
+          "detailed_procedure": "1. Initial supply = 0, cap = 10,000.\n2. Mint 3,000 tokens, verify totalSupply = 3,000.\n3. Burn 500 tokens, verify totalSupply = 2,500.\n4. Mint 7,500 more tokens to reach cap.\n5. Verify totalSupply = 10,000 = maxSupply.\n6. Check arithmetic: minted - burned = totalSupply.",
+          "pass_fail_criteria": "totalSupply accurately tracks all mints and burns; cap calculations correct; arithmetic consistent."
         }
       ]
     },
@@ -298,6 +298,24 @@
           "test_case": "Nonce management",
           "detailed_procedure": "\u2022 Use permit with correct nonce\u2022 Attempt permit with used nonce\u2022 Test nonce increment mechanism\u2022 Verify per-user nonce tracking",
           "pass_fail_criteria": "Nonces prevent replay; increment correctly"
+        },
+        {
+          "id": "TOKEN-PE-03",
+          "test_case": "Chain fork / chainId mismatch",
+          "detailed_procedure": "Fork network, change chainId via hardhat_setChainId (or simulate post-merge fork). Sign permit on chainId A, execute on forked chainId B. Observe validation path.",
+          "pass_fail_criteria": "Permit must fail when chainId in signature ≠ current chainId; contract recomputes domainSeparator correctly after fork."
+        },
+        {
+          "id": "TOKEN-PE-04",
+          "test_case": "EIP-1271 smart-wallet signature",
+          "detailed_procedure": "Create GnosisSafe wallet, produce permit signature via signTypedData_v4. Call permit(). Contract must call isValidSignature on smart wallet.",
+          "pass_fail_criteria": "Permit succeeds only when isValidSignature returns correct magic value; regular EOA verification path bypassed."
+        },
+        {
+          "id": "TOKEN-PE-05",
+          "test_case": "Out-of-order / skipped nonce",
+          "detailed_procedure": "Submit permit with nonce=5 while current nonce=0. Expect revert or gap handling per implementation spec.",
+          "pass_fail_criteria": "Contract rejects non-sequential nonce or explicitly supports bit-map structure; replay protection intact."
         }
       ]
     },
@@ -307,14 +325,14 @@
         {
           "id": "TOKEN-R-01",
           "test_case": "Rebase calculation accuracy",
-          "detailed_procedure": "\u2022 Trigger positive rebase event\u2022 Verify all balances scale proportionally\u2022 Test negative rebase scaling\u2022 Check rebase multiplier precision\u2022 Verify totalSupply adjustment",
-          "pass_fail_criteria": "All balances scale correctly; precision maintained; totalSupply accurate"
+          "detailed_procedure": "1. Initial state: Alice=1000, Bob=500, totalSupply=1500.\n2. Trigger positive rebase with 10% increase.\n3. Verify Alice=1100, Bob=550, totalSupply=1650.\n4. Trigger negative rebase with 5% decrease.\n5. Verify Alice=1045, Bob=522.5, totalSupply=1567.5.\n6. Check precision handling for fractional amounts.",
+          "pass_fail_criteria": "All balances scale proportionally; precision maintained or handled consistently; totalSupply matches sum of balances."
         },
         {
           "id": "TOKEN-R-02",
           "test_case": "Rebase timing control",
-          "detailed_procedure": "\u2022 Test automated rebase triggers\u2022 Verify rebase frequency limits\u2022 Check manual rebase authorization",
-          "pass_fail_criteria": "Rebase timing controlled correctly; frequency limits enforced"
+          "detailed_procedure": "1. Set rebase frequency to once per 24 hours.\n2. Trigger rebase successfully.\n3. Attempt second rebase within 24 hours - expect revert TooSoon.\n4. Wait 24+ hours and trigger rebase successfully.\n5. Test manual rebase authorization requirements.\n6. Verify automated triggers (if applicable) work correctly.",
+          "pass_fail_criteria": "Rebase frequency limits enforced; timing controls work; authorization requirements met; automated triggers function."
         }
       ]
     },
@@ -324,26 +342,26 @@
         {
           "id": "TOKEN-FT-01",
           "test_case": "Transfer fee calculation",
-          "detailed_procedure": "\u2022 Transfer tokens and verify fee deduction\u2022 Test fee calculation accuracy\u2022 Check fee recipient receives correct amount\u2022 Verify net amount received by recipient",
-          "pass_fail_criteria": "Fees calculated correctly; proper distribution between recipient and fee collector"
+          "detailed_procedure": "1. Set transfer fee to 1% with feeRecipient = treasury.\n2. Alice transfers 1000 tokens to Bob.\n3. Verify Bob receives 990 tokens (99%).\n4. Verify treasury receives 10 tokens (1% fee).\n5. Check Transfer events emitted for both transfers.\n6. Test fee calculation with different amounts and rates.",
+          "pass_fail_criteria": "Fee calculated accurately; recipient gets net amount; fee collector receives fee; events emitted correctly."
         },
         {
           "id": "TOKEN-FT-02",
           "test_case": "Fee exemption mechanism",
-          "detailed_procedure": "\u2022 Add address to fee exemption list\u2022 Test exempt address transfers\u2022 Verify exemption for specific transfer types\u2022 Check exemption authorization and management",
-          "pass_fail_criteria": "Exempt addresses avoid fees; exemption management works correctly"
+          "detailed_procedure": "1. Add Alice to feeExemptList via admin.\n2. Alice transfers 1000 tokens to Bob with no fee deducted.\n3. Verify Bob receives full 1000 tokens.\n4. Remove Alice from exemption list.\n5. Alice's next transfer incurs normal fees.\n6. Test mutual exemption: exempt→exempt transfers.",
+          "pass_fail_criteria": "Exempt addresses bypass fees; exemption list management works; mutual exemptions handled correctly."
         },
         {
           "id": "TOKEN-FT-03",
           "test_case": "Fee rate adjustment",
-          "detailed_procedure": "\u2022 Modify transfer fee rate via governance/owner\u2022 Test fee rate bounds validation\u2022 Verify rate changes affect future transfers",
-          "pass_fail_criteria": "Rate changes applied correctly; bounds enforced"
+          "detailed_procedure": "1. Initial fee rate = 0.5%.\n2. Owner calls setFeeRate(2%).\n3. Next transfer uses 2% fee rate.\n4. Attempt setFeeRate(15%) - expect revert if exceeds max.\n5. Test setFeeRate(0) to disable fees.\n6. Verify rate changes take effect immediately.",
+          "pass_fail_criteria": "Fee rate changes applied to future transfers; bounds validation works; immediate effect; zero rate disables fees."
         },
         {
           "id": "TOKEN-FT-04",
           "test_case": "Fee accumulation and distribution",
-          "detailed_procedure": "\u2022 Accumulate fees over multiple transfers\u2022 Test fee distribution works correctly\u2022 Verify fee withdrawal mechanisms work correctly and that they actually exist\u2022 Verify unauthorized users are unable to receive fees",
-          "pass_fail_criteria": "Fees accumulate correctly; distribution mechanisms work; withdrawal authorized properly; unauthorized users are unable to receive fees"
+          "detailed_procedure": "1. Execute 20 transfers accumulating 100 tokens in fees.\n2. Verify feeRecipient balance increased by 100.\n3. Test fee distribution mechanism if different from direct transfer.\n4. Call withdrawFees() as authorized user successfully.\n5. Unauthorized user attempts withdrawFees() - expect revert.\n6. Verify fee accounting remains accurate.",
+          "pass_fail_criteria": "Fees accumulate correctly; distribution/withdrawal mechanisms work; authorization enforced; accounting accurate."
         }
       ]
     },
@@ -353,14 +371,49 @@
         {
           "id": "TOKEN-RF-01",
           "test_case": "Reward distribution mechanism",
-          "detailed_procedure": "\u2022 Hold tokens and verify automatic reward accrual\u2022 Test reward calculation based on holdings\u2022 Check reward distribution triggers\u2022 Verify proportional reward allocation",
-          "pass_fail_criteria": "Rewards distributed proportionally; automatic accrual works; calculations accurate"
+          "detailed_procedure": "1. Setup: Alice=1000 tokens, Bob=500 tokens, totalSupply=1500.\n2. Distribute 150 tokens as rewards to all holders.\n3. Alice should receive 100 tokens (1000/1500 * 150).\n4. Bob should receive 50 tokens (500/1500 * 150).\n5. Verify automatic reward distribution without explicit claiming.\n6. Test with varying reward amounts and holder ratios.",
+          "pass_fail_criteria": "Rewards distributed proportionally to holdings; automatic distribution works; calculations accurate; no manual claiming required."
         },
         {
           "id": "TOKEN-RF-02",
           "test_case": "Transfer impact on rewards",
-          "detailed_procedure": "\u2022 Transfer tokens and verify reward tracking\u2022 Verify users are unable to duplicate rewards by constant transferring",
-          "pass_fail_criteria": "Rewards track correctly during transfers; users are unable to constantly transfer tokens to duplicate rewards"
+          "detailed_procedure": "1. Alice holds 1000 tokens earning rewards.\n2. Trigger reward distribution, note Alice's pending rewards.\n3. Alice transfers 500 tokens to Charlie mid-distribution.\n4. Verify Alice receives rewards for 1000 tokens held before transfer.\n5. Verify Charlie earns rewards only for period after receiving tokens.\n6. Test rapid transfers don't duplicate rewards.",
+          "pass_fail_criteria": "Reward tracking accurate during transfers; no reward duplication from transfers; time-weighted distributions work correctly."
+        }
+      ]
+    },
+    {
+      "tag": "Bridged / Layer-2 Token Invariants",
+      "test_cases": [
+        {
+          "id": "TOKEN-BR-01",
+          "test_case": "Mint/Burn supply invariant",
+          "detailed_procedure": "Lock 1,000 tokens on L1 and mint on L2. Burn 200 on L2 and unlock on L1. Query totalLocked(L1), totalMinted(L2), fees. Verify equation.",
+          "pass_fail_criteria": "totalLocked = totalMinted + fees holds across sequence; invariant check passes in fuzz run of 10,000 random bridge ops."
+        },
+        {
+          "id": "TOKEN-BR-02",
+          "test_case": "Replay-proof deposit event",
+          "detailed_procedure": "Submit same deposit proof twice to L2 bridge. Expect second tx revert due to nonce/uniqueId consumed.",
+          "pass_fail_criteria": "Bridge rejects replay; total supply unchanged after duplicate proof."
+        },
+        {
+          "id": "TOKEN-BR-03",
+          "test_case": "Source chain re-org safety",
+          "detailed_procedure": "Simulate deposit finalized after N confirmations, then revert L1 chain beyond that deposit. Ensure L2 minted tokens are rolled back or challenge triggered.",
+          "pass_fail_criteria": "Either optimistic challenge burns tokens or bridge waits adequate confirmations; no unbacked tokens persist."
+        },
+        {
+          "id": "TOKEN-BR-04",
+          "test_case": "Fee skimming correctness",
+          "detailed_procedure": "Bridge fee set to 0.1%. Deposit 10,000 tokens. Verify 9,990 minted; 10 fee credited to bridgeFeeVault. Fuzz varying amounts.",
+          "pass_fail_criteria": "Fee deducted precisely per config; rounding errors ≤1 wei across fuzz."
+        },
+        {
+          "id": "TOKEN-BR-05",
+          "test_case": "Double-mint via dual bridges",
+          "detailed_procedure": "Lock token on L1 using BridgeA and BridgeB simultaneously (token supports multiple bridges). Ensure supply on L2 across bridges doesn't exceed locked supply.",
+          "pass_fail_criteria": "Bridges coordinate via canonical token or escrow; total minted ≤ total locked; attacker cannot mint twice with same deposit."
         }
       ]
     }

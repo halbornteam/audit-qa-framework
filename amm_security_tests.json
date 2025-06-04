@@ -1,0 +1,485 @@
+{
+  "tag": "AMM",
+  "categories": [
+    {
+      "tag": "Uniswap V2 Fork",
+      "test_cases": [
+        {
+          "id": "AMM-V2-01",
+          "test_case": "Invariant accuracy (k)",
+          "detailed_procedure": "1. Deploy fresh pair (TokenA–TokenB) and add 1 000 000 wei each as initial liquidity.\n2. For 1 000 iterations:\n   a. Pick random swap direction and amount ∈ [1 wei, 50 % of in-reserve].\n   b. Record pre-swap reserves (rA,rB) and compute k_before = rA·rB.\n   c. Execute swap.\n   d. Fetch new reserves (rA',rB') and compute k_after = rA'·rB'.\n   e. Compute Δk = k_after − k_before + feeTaken (amountIn·fee_bps/1000).\n3. Repeat full loop with feeTo=0 and with feeTo set (protocolFeeOn = true).",
+          "pass_fail_criteria": "For every iteration |Δk| ≤ 1 wei when feeTo==0, and |Δk| ≤ protocolFee (within 1 wei) when feeTo active. Any positive Δk in excess implies inflation; negative beyond rounding implies value leakage."
+        },
+        {
+          "id": "AMM-V2-02",
+          "test_case": "Fee deduction math",
+          "detailed_procedure": "1. Set feeNumerator/feeDenominator to (3,1000) => 0.3 %. Provide reserves 10 000A / 10 000B.\n2. Swap exact 1 000 A for B via swapExactTokensForTokens().\n3. Off-chain compute amountOut = (1000*997*reserveB)/(reserveA*1000+1000*997).\n4. Compare to on-chain amountOut event. Repeat for fees 1 % and 0 % by modifying pair fee parameters (or using forks).",
+          "pass_fail_criteria": "|onChainOut − refOut| ≤ 1 wei for each fee configuration."
+        },
+        {
+          "id": "AMM-V2-03",
+          "test_case": "MINIMUM_LIQUIDITY grief",
+          "detailed_procedure": "Scenario A – tiny bootstrap:\n  1. Provide 1 wei per token when totalSupply == 0.\n  2. Expect LP minted == MINIMUM_LIQUIDITY (1000) which is then burned to address(0).\n  3. Compute totalSupply and verify >0.\nScenario B – withdraw drain attempt:\n  1. Provide another 1 000 tokens each.\n  2. Remove maximum liquidity.\n  3. Verify totalSupply == MINIMUM_LIQUIDITY; reserves each == 1 wei. No further remove allowed without under-flow.\nScenario C – normal bootstrap with large liquidity (1e18). Repeat above asserts.",
+          "pass_fail_criteria": "At all times totalSupply ≥ MINIMUM_LIQUIDITY and cannot reach zero; removeLiquidity reverts when trying to burn last wei."
+        },
+        {
+          "id": "AMM-V2-04",
+          "test_case": "skim() / sync() misuse",
+          "detailed_procedure": "Scenario 1 – Steal-dust attempt via skim():\n  1. Provide 10 000 A / 10 000 B liquidity.\n  2. Transfer 100 A directly to pair contract (no mint).\n  3. Call skim(attacker). Expect attacker receives exactly 100 A.\n  4. Compute reserves afterward; they must equal pre-transfer values.\nScenario 2 – Reserve desync grief via sync():\n  1. Transfer 200 B to pair.\n  2. Call sync().\n  3. Immediately perform balanced swap expecting 1:1 price. Compare to reference price with reserves accounted.\n  4. Transfer 200 B back out with swap.\n  5. Verify no permanent profit path exists; pool invariant holds.",
+          "pass_fail_criteria": "skim() only moves true excess without touching invariant. sync() updates reserves but any price manipulation is limited to value of transferred tokens; no dust remains extractable beyond transferred amount."
+        },
+        {
+          "id": "AMM-V2-05",
+          "test_case": "Re-entrancy on swap",
+          "detailed_procedure": "1. Deploy Malicious777 implementing tokensReceived() that calls pair.swap() a second time before first swap finishes.\n2. Seed pool with Token777/A pair.\n3. Execute swapExactTokensForTokens() sending 100 Token777 in; during callback attempt re-enter to drain.\n4. Track reentrancy depth and post-tx reserves.\n5. Repeat with normal ERC-20 to show baseline.",
+          "pass_fail_criteria": "Lock modifier prevents second swap; re-entrant call reverts with LOCKED error; after tx reserves follow invariant; no extra tokens transferred to attacker."
+        },
+        {
+          "id": "AMM-V2-06",
+          "test_case": "Overflow / underflow",
+          "detailed_procedure": "1. Run differential fuzzing with Echidna/Foundry.\n2. Test reserves in range [1, 2**112-1] (limit of UQ112x112).\n3. Test amountIn up to 2**256-1.\n4. Assert: multiply/divide operations in getAmountOut() never overflow 256-bit and always revert when amountIn > 2**112-1 or result >2**112-1.\n5. Compare against Python reference implementation using big ints.",
+          "pass_fail_criteria": "All overflow paths hit Solidity built-in revert (>=0.8) or SafeMath; no incorrect low price emitted; invariant holds."
+        },
+        {
+          "id": "AMM-V2-07",
+          "test_case": "Flash loan price manipulation",
+          "detailed_procedure": "1. Deploy flash loan contract that borrows 90% of pool's tokenA.\n2. In callback, swap borrowed tokenA for tokenB, manipulating price 10x.\n3. Attempt to liquidate position on external protocol using manipulated price.\n4. Swap back tokenB for tokenA to repay loan.\n5. Verify net profit and measure attack cost vs gain.",
+          "pass_fail_criteria": "Attack either unprofitable due to slippage/fees or external protocol has adequate price protection; no risk-free manipulation."
+        },
+        {
+          "id": "AMM-V2-08",
+          "test_case": "LP token transfer restrictions",
+          "detailed_procedure": "1. User mints LP tokens for TokenA/TokenB pair.\n2. Transfer LP tokens to another address.\n3. New holder attempts to burn LP tokens for underlying assets.\n4. Verify burn succeeds and correct proportional assets returned.\n5. Test LP token approvals and transferFrom functionality.\n6. Check LP token balance tracking across transfers.",
+          "pass_fail_criteria": "LP tokens freely transferable; new holders can burn for proportional assets; balance tracking accurate across all transfers."
+        },
+        {
+          "id": "AMM-V2-09",
+          "test_case": "Low liquidity pair exploitation",
+          "detailed_procedure": "1. Create pair with minimal liquidity: 1000 TokenA, 1000 TokenB.\n2. Perform small swap (10 TokenA) and measure price impact.\n3. Attempt large swap (500 TokenA) causing 50% price movement.\n4. Calculate slippage and compare to high-liquidity pair baseline.\n5. Test if low liquidity enables profitable sandwich attacks.",
+          "pass_fail_criteria": "High slippage on low-liquidity pairs matches expected curve; no unexpected arbitrage opportunities; price impact consistent with reserves."
+        }
+      ]
+    },
+    {
+      "tag": "Uniswap V3",
+      "test_cases": [
+        {
+          "id": "AMM-V3-01",
+          "test_case": "Tick spacing enforcement",
+          "detailed_procedure": "1. Create pool WETH/USDC with tickSpacing = 60.\n2. Call mint() with lowerTick = 301 and upperTick = 361 (301 % 60 ≠ 0).\n3. Expect revert TickMisaligned.\n4. Call mint() with lowerTick = MIN_TICK + 1 and upperTick = MAX_TICK − 1.\n5. Expect revert InvalidTick.\n6. Call mint() with lowerTick = -60000, upperTick = 60000 (both divisible by 60).\n7. Expect success and position.liquidity > 0.",
+          "pass_fail_criteria": "All mis-aligned or out-of-range ticks revert with specific error; valid aligned ticks succeed."
+        },
+        {
+          "id": "AMM-V3-02",
+          "test_case": "sqrtPriceX96 precision",
+          "detailed_procedure": "1. Provide 1e24 liquidity spanning [-120000,120000].\n2. Perform 100 swaps of 10k token0 each, alternating directions.\n3. After each swap, read slot0.sqrtPriceX96.\n4. Off-chain, compute expected sqrtP_next using tick math library (full-precision).\n5. Record absolute delta = |onChain − ref|. Collect stats (max,mean).",
+          "pass_fail_criteria": "max(delta) ≤ 1 (1 ÷ 2^96) WETH; mean delta ≈ 0."
+        },
+        {
+          "id": "AMM-V3-03",
+          "test_case": "Global & position fee growth",
+          "detailed_procedure": "Setup: LP1 mints [-120,120]; LP2 mints [0,240].\n1. Swap token0→token1 moving price from -60→60 (crossing 2 ticks).\n2. Capture globalFeeGrowth before & after.\n3. Compute feeGrowthInside for each position using white-paper formula.\n4. Call collect() and compare amounts to computed values within 1 wei.\n5. Repeat with price move that does NOT cross LP1 range to test selective accrual.",
+          "pass_fail_criteria": "Collected fees per position differ from reference ≤1 wei for each scenario."
+        },
+        {
+          "id": "AMM-V3-04",
+          "test_case": "Callback under-payment",
+          "detailed_procedure": "1. Deploy AttackerCallback that implements uniswapV3SwapCallback().\n2. In callback, transfer only 50% of required amount1Delta to pool.\n3. Call exactInputSingle() for 1000 USDC→WETH swap.\n4. Monitor pool balance and callback execution.\n5. Verify transaction reverts before completion.",
+          "pass_fail_criteria": "Swap reverts with IIA (Insufficient Input Amount) or similar; pool balances unchanged; no debt persists."
+        },
+        {
+          "id": "AMM-V3-05",
+          "test_case": "Price limit slippage",
+          "detailed_procedure": "1. Current price at tick 100. Set sqrtPriceLimitX96 = TickMath.getSqrtRatioAtTick(105).\n2. Attempt swap that would naturally move price to tick 120.\n3. Verify swap stops at tick 105 and returns partial amountOut.\n4. Repeat with sqrtPriceLimitX96 = tick 95 (wrong direction).\n5. Expect revert SPL (sqrt price limit).",
+          "pass_fail_criteria": "Swap stops exactly at limit; wrong-direction limit reverts; partial fill tracked correctly."
+        },
+        {
+          "id": "AMM-V3-06",
+          "test_case": "Observation overflow",
+          "detailed_procedure": "1. Initialize pool with observationCardinalityNext = 100.\n2. evm_increaseTime(2**32 + 1) to overflow timestamp.\n3. Perform 150 swaps to overflow cardinality and index.\n4. Call observe([3600, 0]) for 1h TWAP.\n5. Verify returned tick/price is reasonable and no revert.",
+          "pass_fail_criteria": "No arithmetic overflow; TWAP returns valid tick; ring buffer wraps correctly without corruption."
+        },
+        {
+          "id": "AMM-V3-07",
+          "test_case": "Position NFT ownership validation",
+          "detailed_procedure": "1. User mints position NFT via NonfungiblePositionManager.\n2. Transfer NFT to different address.\n3. Original owner attempts collect() and decreaseLiquidity() - expect revert NotOwner.\n4. New owner successfully collects fees and modifies liquidity.\n5. Test burning NFT and verify position is properly closed.\n6. Attempt operations on burned NFT - expect revert TokenDoesNotExist.",
+          "pass_fail_criteria": "Only NFT owner can modify position; transfers update ownership correctly; burned NFTs prevent operations."
+        },
+        {
+          "id": "AMM-V3-08",
+          "test_case": "Multiple fee tier arbitrage",
+          "detailed_procedure": "1. Create WETH/USDC pools with 0.05%, 0.3%, and 1% fee tiers.\n2. Add different liquidity amounts to create price discrepancies.\n3. Execute arbitrage: buy from low-fee pool, sell to high-fee pool.\n4. Calculate profit accounting for gas and slippage.\n5. Repeat until prices converge across all tiers.",
+          "pass_fail_criteria": "Arbitrage opportunities diminish as prices converge; final prices differ only by fee tier spread; no sustained arbitrage profit."
+        },
+        {
+          "id": "AMM-V3-09",
+          "test_case": "Concentrated liquidity sniping",
+          "detailed_procedure": "1. Monitor mempool for large swap targeting specific price range.\n2. Front-run with concentrated liquidity provision in that exact range.\n3. Let victim swap execute, earning disproportionate fees.\n4. Immediately remove liquidity after swap.\n5. Calculate profit from liquidity sniping vs time-weighted provision.",
+          "pass_fail_criteria": "MEV protection prevents profitable sniping or profit margin within expected bounds; no risk-free fee extraction."
+        }
+      ]
+    },
+    {
+      "tag": "Advanced V3 Scenarios",
+      "test_cases": [
+        {
+          "id": "AMM-V3A-01",
+          "test_case": "Single-tick concentrated liquidity",
+          "detailed_procedure": "1. Create position with lowerTick = 60, upperTick = 120 (single tick spacing).\n2. Add maximum possible liquidity to this narrow range.\n3. Execute swap that moves price into this range.\n4. Verify liquidity becomes active and earns fees.\n5. Execute reverse swap moving price out of range.\n6. Check position becomes inactive and stops earning.",
+          "pass_fail_criteria": "Position activates/deactivates correctly at tick boundaries; fee accrual accurate only when active; no fee leakage when out-of-range."
+        },
+        {
+          "id": "AMM-V3A-02",
+          "test_case": "Tick boundary manipulation attack",
+          "detailed_procedure": "1. Identify tick boundary with significant liquidity at tick T.\n2. Execute small swap to move price just below tick T.\n3. Add large concentrated liquidity spanning tick T.\n4. Execute large swap pushing price above tick T, activating new liquidity.\n5. Measure fee earned vs liquidity time-weighted average.\n6. Remove liquidity immediately after benefiting from swap.",
+          "pass_fail_criteria": "No exploit allows disproportionate fee capture; fees earned proportional to liquidity×time; sandwich attacks unprofitable after gas costs."
+        },
+        {
+          "id": "AMM-V3A-03",
+          "test_case": "Position partial burn with uncollected fees",
+          "detailed_procedure": "1. Mint position with 1000 liquidity tokens.\n2. Accrue 50 USDC in uncollected fees.\n3. Burn 600 liquidity tokens without collecting fees first.\n4. Verify remaining position still owns full 50 USDC fees.\n5. Collect fees and confirm 50 USDC received.\n6. Burn remaining 400 liquidity tokens.",
+          "pass_fail_criteria": "Partial burns don't affect uncollected fees; fee collection independent of liquidity amount; no fee loss during position modifications."
+        },
+        {
+          "id": "AMM-V3A-04",
+          "test_case": "Extreme price range positions",
+          "detailed_procedure": "1. Create position at maximum price range: [MIN_TICK, MAX_TICK].\n2. Create position at minimum price range: current tick ± 1.\n3. Execute swaps testing both extreme positions.\n4. Monitor gas usage, precision, and overflow risks.\n5. Test position management operations at price extremes.",
+          "pass_fail_criteria": "Extreme positions function without overflow; gas usage within reasonable bounds; precision maintained at price boundaries."
+        },
+        {
+          "id": "AMM-V3A-05",
+          "test_case": "Cross-tick liquidity activation timing",
+          "detailed_procedure": "1. Set up positions: A=[-60,60], B=[0,120], C=[60,180].\n2. Current price at tick -120 (only A active).\n3. Execute large swap moving price from -120 to +120.\n4. Track exact ticks where B and C become active.\n5. Verify fee accrual starts precisely at position boundaries.\n6. Confirm fee growth calculations across multiple position activations.",
+          "pass_fail_criteria": "Liquidity activates at exact tick crossings; fee accrual timing precise; no fees earned before activation or after deactivation."
+        },
+        {
+          "id": "AMM-V3A-06",
+          "test_case": "Position NFT metadata manipulation",
+          "detailed_procedure": "1. Mint position NFT with specific tick range and liquidity.\n2. Attempt to directly modify NFT metadata or tokenURI.\n3. Try to create duplicate NFT with same position data.\n4. Test NFT transfer with pending fee collection.\n5. Verify position data integrity across all operations.",
+          "pass_fail_criteria": "NFT metadata immutable post-mint; no duplicate NFTs possible; position data remains consistent; transfers preserve all position state."
+        },
+        {
+          "id": "AMM-V3A-07",
+          "test_case": "Liquidity density DOS attack",
+          "detailed_procedure": "1. Create 1000 tiny positions (1 wei liquidity each) spanning same tick range.\n2. Execute swap crossing this range with dense liquidity.\n3. Monitor gas consumption for crossing each micro-position.\n4. Test if gas limit can be exceeded causing swap failure.\n5. Verify tick bitmap updates efficiently handle dense positions.",
+          "pass_fail_criteria": "Dense positions don't cause gas limit DOS; tick crossing gas usage scales efficiently; swap success independent of position count."
+        },
+        {
+          "id": "AMM-V3A-08",
+          "test_case": "Fee tier migration attack",
+          "detailed_procedure": "1. Provide liquidity to 0.3% fee tier pool.\n2. Wait for significant fee accrual.\n3. Remove liquidity and immediately add to 0.05% fee tier.\n4. Execute wash trading to generate volume on lower fee tier.\n5. Attempt to claim fees from original pool after migration.\n6. Test if fee accounting persists across tier changes.",
+          "pass_fail_criteria": "Fee collection tied to specific pool position; migration doesn't allow double-claiming; fee growth isolated per tier."
+        },
+        {
+          "id": "AMM-V3A-09",
+          "test_case": "Position ownership frontrun attack",
+          "detailed_procedure": "1. Monitor mempool for profitable position mint transaction.\n2. Front-run with identical position parameters but higher gas.\n3. Back-run original transaction expecting revert or conflict.\n4. Verify position creation isolation and uniqueness.\n5. Test if multiple identical positions can coexist.",
+          "pass_fail_criteria": "Multiple identical positions allowed; no position conflicts; each NFT represents independent position; frontrunning gains no advantage."
+        },
+        {
+          "id": "AMM-V3A-10",
+          "test_case": "Liquidity grief via dust positions",
+          "detailed_procedure": "1. Create 10,000 positions with 1 wei liquidity each across all ticks.\n2. Execute swaps crossing maximum tick ranges.\n3. Monitor gas costs and transaction success rates.\n4. Test pool operations under maximum position density.\n5. Verify tick bitmap efficiency with maximum granularity.",
+          "pass_fail_criteria": "Operations remain gas-efficient under maximum load; no DOS possible via dust positions; tick bitmap scales to full capacity."
+        }
+      ]
+    },
+    {
+      "tag": "Balancer-style Pools",
+      "test_cases": [
+        {
+          "id": "AMM-B-01",
+          "test_case": "Weighted invariant",
+          "detailed_procedure": "1. Create 3-token pool: 40% WETH, 30% USDC, 30% DAI.\n2. Add initial 100e18 WETH, 200k USDC, 200k DAI.\n3. Compute k_initial = (WETH**0.4) * (USDC**0.3) * (DAI**0.3).\n4. Perform 50 random swaps between any two tokens.\n5. After each swap, recompute k_new and track Δk = |k_new - k_initial|.",
+          "pass_fail_criteria": "Δk ≤ swap_fee_total within 1e-12 relative precision; no monotonic drift."
+        },
+        {
+          "id": "AMM-B-02",
+          "test_case": "Proportional join/exit",
+          "detailed_procedure": "1. Join pool with 10% additional liquidity proportionally across all tokens.\n2. Receive BPT (Balancer Pool Token); compute expected vs actual BPT minted.\n3. Exit with 5% of total BPT supply.\n4. Compare received tokens to proportional 5% of reserves.\n5. Repeat with 8-token pool to test higher complexity.",
+          "pass_fail_criteria": "BPT minted/burned matches proportional math ≤1 wei per token; no rounding favor."
+        },
+        {
+          "id": "AMM-B-03",
+          "test_case": "Gradual weight change",
+          "detailed_procedure": "1. Schedule weight change: WETH 50%→70%, USDC 50%→30% over 1000 blocks.\n2. Mine 500 blocks and query current weights; expect 60% WETH, 40% USDC.\n3. Mine 500 more blocks; expect final 70%/30%.\n4. Track price = (reserve_USDC/weight_USDC) / (reserve_WETH/weight_WETH) during transition.\n5. Ensure smooth transition without arbitrage opportunities.",
+          "pass_fail_criteria": "Weight interpolation linear ±1 block; price follows continuous path without jumps >0.01%."
+        },
+        {
+          "id": "AMM-B-04",
+          "test_case": "Fee routing",
+          "detailed_procedure": "1. Set protocolFeePercentage = 50% (50% of swap fees go to protocol).\n2. Perform 100 WETH→USDC swaps of 1 ETH each.\n3. Call collectProtocolFees() and verify protocol treasury receives ~50% of accumulated fees.\n4. Verify pool reserves and LP token values are unaffected by fee collection.",
+          "pass_fail_criteria": "Protocol receives exactly 50% of fees ±1 wei; pool invariant and LP values unchanged."
+        },
+        {
+          "id": "AMM-B-05",
+          "test_case": "Single-asset deposit/withdrawal",
+          "detailed_procedure": "1. Balanced pool: 50% WETH, 50% USDC.\n2. Deposit 10 ETH only (single asset) via joinPool.\n3. Calculate expected price impact and BPT received.\n4. Immediately withdraw single asset (USDC only).\n5. Compare to balanced deposit/withdrawal of equivalent value.\n6. Measure MEV opportunity and slippage costs.",
+          "pass_fail_criteria": "Single-asset operations have appropriate slippage; no arbitrage opportunity exceeding fees; price impact matches theoretical calculation."
+        },
+        {
+          "id": "AMM-B-06",
+          "test_case": "Custom pool factory validation",
+          "detailed_procedure": "1. Deploy custom pool with non-standard invariant function.\n2. Attempt to register with Balancer factory.\n3. Test factory validation of pool parameters and code.\n4. Deploy malicious pool attempting to drain other pools.\n5. Verify factory security checks prevent malicious registrations.",
+          "pass_fail_criteria": "Factory validates pool contracts; malicious pools rejected; only compliant pools accepted."
+        },
+        {
+          "id": "AMM-B-07",
+          "test_case": "Boosted pool meta-transactions",
+          "detailed_procedure": "1. Create boosted pool with aToken integration.\n2. Execute swap generating yield during transaction.\n3. Verify yield properly allocated to LPs.\n4. Test yield rate manipulation via external protocol.\n5. Check if yield rate changes affect swap calculations.",
+          "pass_fail_criteria": "Yield integration secure; no manipulation of swap rates via yield changes; yield allocated fairly to LPs."
+        }
+      ]
+    },
+    {
+      "tag": "Curve-style Stable Pools",
+      "test_cases": [
+        {
+          "id": "AMM-C-01",
+          "test_case": "Amplification ramp",
+          "detailed_procedure": "1. Initialize 3pool (DAI/USDC/USDT) with A=100.\n2. Schedule ramp to A=200 over 10,000 blocks via ramp_A().\n3. Every 500 blocks: mine block, perform 1k DAI→USDC swap, compute D via get_D().\n4. Track D_expected = theoretical stable-swap invariant vs D_actual.\n5. Monitor for any monotonic drift indicating value leak.",
+          "pass_fail_criteria": "D tracks expected curve ±0.01%; no sustained drift >fee accumulation."
+        },
+        {
+          "id": "AMM-C-02",
+          "test_case": "Single-sided deposit exploit",
+          "detailed_procedure": "1. Add 1M USDC only to balanced 3pool via add_liquidity([0, 1000000e6, 0]).\n2. Immediately calc_withdraw_one_coin() for DAI withdrawal.\n3. Compare received DAI to 1M equivalent at oracle price.\n4. Subtract pool swap fees and slippage; measure net arbitrage profit.",
+          "pass_fail_criteria": "Net profit ≤ 0.04% (base fee); no risk-free arbitrage exceeding fee structure."
+        },
+        {
+          "id": "AMM-C-03",
+          "test_case": "Fee curve",
+          "detailed_procedure": "1. Balanced pool state: 100k each DAI/USDC/USDT.\n2. Perform 1k DAI→USDC swap; record effective fee rate.\n3. Imbalanced state: drain USDC to 5k, others at 100k.\n4. Perform same 1k DAI→USDC swap; record fee rate.\n5. Compare fee_imbalanced vs fee_balanced.",
+          "pass_fail_criteria": "fee_imbalanced ≥ fee_balanced * 1.5; dynamic fee properly penalizes imbalance."
+        },
+        {
+          "id": "AMM-C-04",
+          "test_case": "Admin fee withdrawal",
+          "detailed_procedure": "1. Set admin_fee = 50% of total fees.\n2. Perform 1000 swaps to accrue ~100 USDC admin fees.\n3. Call withdraw_admin_fees().\n4. Verify: LP totalSupply unchanged, pool virtual_price unchanged, admin wallet receives expected amount.",
+          "pass_fail_criteria": "Admin receives 50% of fee accumulation ±1 wei; LP and pool pricing unaffected."
+        },
+        {
+          "id": "AMM-C-05",
+          "test_case": "A parameter manipulation attack",
+          "detailed_procedure": "1. Create pool with A=100, admin controls ramping.\n2. Admin initiates ramp_A(500) over 1 day.\n3. Large trader exploits increasing A parameter during ramp.\n4. Execute arbitrage between pool price and external price during ramp.\n5. Measure profit extraction during parameter transition.",
+          "pass_fail_criteria": "Parameter ramps have sufficient time delays; arbitrage opportunities within expected bounds; no admin front-running possible."
+        },
+        {
+          "id": "AMM-C-06",
+          "test_case": "Base pool vs meta pool interaction",
+          "detailed_procedure": "1. Create base pool (DAI/USDC/USDT) and meta pool (FRAX/3CRV).\n2. Execute large trade in base pool affecting 3CRV price.\n3. Immediately trade in meta pool exploiting stale 3CRV pricing.\n4. Test if meta pool uses current vs cached base pool prices.\n5. Verify arbitrage opportunities between pool layers.",
+          "pass_fail_criteria": "Meta pool pricing reflects current base pool state; no stale price exploitation; arbitrage limited to external price differences."
+        },
+        {
+          "id": "AMM-C-07",
+          "test_case": "Admin key compromise simulation",
+          "detailed_procedure": "1. Deploy pool with standard admin controls.\n2. Simulate admin key compromise scenario.\n3. Test emergency pause functionality.\n4. Verify user funds remain withdrawable during pause.\n5. Test timelock delays on parameter changes.\n6. Check if users can exit before malicious changes take effect.",
+          "pass_fail_criteria": "Emergency pause protects funds; timelocks prevent immediate parameter abuse; users retain withdrawal rights; compromise damage minimized."
+        }
+      ]
+    },
+    {
+      "tag": "Swap Function Logic",
+      "test_cases": [
+        {
+          "id": "AMM-S-01",
+          "test_case": "Slippage guard",
+          "detailed_procedure": "1. Quote swap 1000 USDC→WETH, expect ~0.4 WETH.\n2. Call swapExactTokensForTokens() with amountOutMin = 0.5 WETH.\n3. Verify transaction reverts with INSUFFICIENT_OUTPUT_AMOUNT.\n4. Retry with amountOutMin = 0.3 WETH (below expected).\n5. Verify swap succeeds and returns ≥0.3 WETH.",
+          "pass_fail_criteria": "Swap reverts when amountOut < amountOutMin; succeeds when realistic; exact error message returned."
+        },
+        {
+          "id": "AMM-S-02",
+          "test_case": "Deadline expiry",
+          "detailed_procedure": "1. Record current block.timestamp.\n2. Call swap with deadline = block.timestamp - 1.\n3. Verify revert with EXPIRED error.\n4. Call with deadline = block.timestamp + 3600.\n5. Verify swap succeeds within timeframe.",
+          "pass_fail_criteria": "Past deadline always reverts; future deadline allows execution."
+        },
+        {
+          "id": "AMM-S-03",
+          "test_case": "Fee-on-transfer token",
+          "detailed_procedure": "1. Deploy DeflatToken that burns 2% on transfer.\n2. Add WETH/DeflatToken liquidity.\n3. Swap 100 WETH for DeflatToken.\n4. Verify only 98 DeflatToken reaches pool reserves.\n5. Ensure invariant accounts for actual received amount, not nominal.",
+          "pass_fail_criteria": "Pool reserves reflect post-fee amounts; k invariant preserved with actual tokens."
+        },
+        {
+          "id": "AMM-S-04",
+          "test_case": "Non-standard ERC-20",
+          "detailed_procedure": "1. Deploy BrokenToken that returns false on transfer().\n2. Deploy NoReturnToken that has no return value.\n3. Attempt swaps involving each token.\n4. Verify router/pool detects failure and reverts.\n5. Test with SafeERC20 wrapper behavior.",
+          "pass_fail_criteria": "Failed transfers cause transaction revert; no silent balance corruption."
+        },
+        {
+          "id": "AMM-S-05",
+          "test_case": "Multi-hop path optimization",
+          "detailed_procedure": "1. Set up pools: USDC/WETH, WETH/DAI, USDC/DAI.\n2. Compare direct USDC→DAI vs USDC→WETH→DAI routes.\n3. Calculate optimal path considering fees and slippage.\n4. Execute both routes and verify path selection logic.\n5. Test with 4+ hop paths for efficiency.",
+          "pass_fail_criteria": "Router selects most efficient path; multi-hop slippage calculated correctly; gas costs considered in optimization."
+        },
+        {
+          "id": "AMM-S-06",
+          "test_case": "Token with hooks/callbacks",
+          "detailed_procedure": "1. Deploy ERC-777 token with tokensReceived hook.\n2. Hook implementation attempts reentrancy during swap.\n3. Execute swap involving the token with hooks.\n4. Verify swap completes safely without exploitation.\n5. Test performance impact of hooks on swap execution.",
+          "pass_fail_criteria": "Hooks don't enable reentrancy; swap state protected; reasonable gas overhead; no value extraction via hooks."
+        }
+      ]
+    },
+    {
+      "tag": "Flash Loan Resistance",
+      "test_cases": [
+        {
+          "id": "AMM-F-01",
+          "test_case": "Pool-drain atomic arbitrage",
+          "detailed_procedure": "Borrow full reserve, perform reverse swap chain, repay",
+          "pass_fail_criteria": "Transaction reverts or net profit ≤ LP fee"
+        },
+        {
+          "id": "AMM-F-02",
+          "test_case": "Sandwich",
+          "detailed_procedure": "Simulate front-run/back-run around victim; compute price impact vs expectation",
+          "pass_fail_criteria": "Impact equals expected slippage; no hidden rebate"
+        },
+        {
+          "id": "AMM-F-03",
+          "test_case": "Cross-protocol flash arbitrage",
+          "detailed_procedure": "1. Flash loan 10M USDC from Protocol A.\n2. Buy ETH on AMM X at discount price.\n3. Sell ETH on AMM Y at premium price.\n4. Repay flash loan and keep profit.\n5. Calculate net profit after fees and gas.\n6. Verify if arbitrage opportunities exist across protocols.",
+          "pass_fail_criteria": "Arbitrage profit ≤ expected market efficiency bounds; no risk-free profit exceeding 0.1%; prices converge after arbitrage."
+        },
+        {
+          "id": "AMM-F-04",
+          "test_case": "Oracle manipulation via flash loans",
+          "detailed_procedure": "1. Flash borrow to manipulate AMM price by 50%.\n2. Call external oracle that uses this AMM for pricing.\n3. Execute transaction on lending protocol using manipulated price.\n4. Restore AMM price and repay flash loan.\n5. Measure net profit from oracle manipulation attack.",
+          "pass_fail_criteria": "Oracle manipulation unprofitable due to time delays or TWAP; external protocols protected from single-block manipulation."
+        }
+      ]
+    },
+    {
+      "tag": "Router / Meta-AMM",
+      "test_cases": [
+        {
+          "id": "AMM-R-01",
+          "test_case": "Route slippage bound",
+          "detailed_procedure": "1. Route: USDC→WETH→DAI with 2 hops.\n2. Quote expected ~998 DAI output.\n3. Set amountOutMin = 1000 DAI.\n4. Execute swapExactTokensForTokens().\n5. Expect revert INSUFFICIENT_OUTPUT_AMOUNT.",
+          "pass_fail_criteria": "Multi-hop respects final output minimum; intermediate slippage aggregated."
+        },
+        {
+          "id": "AMM-R-02",
+          "test_case": "Delegatecall re-entrancy",
+          "detailed_procedure": "1. Deploy MaliciousPool that calls router functions during swap callback.\n2. Route trade through malicious pool.\n3. In callback, attempt reentrancy into router.swapExactTokensForTokens().\n4. Verify router blocks reentrant calls.",
+          "pass_fail_criteria": "Router reentrancy guard prevents nested calls; state corruption avoided."
+        },
+        {
+          "id": "AMM-R-03",
+          "test_case": "Pool whitelist",
+          "detailed_procedure": "1. Deploy custom pool not in factory registry.\n2. Attempt route through unregistered pool.\n3. Expect revert INVALID_POOL or similar.\n4. Add pool to whitelist and retry successfully.",
+          "pass_fail_criteria": "Router only accepts whitelisted/factory pools; unauthorized pools blocked."
+        },
+        {
+          "id": "AMM-R-04",
+          "test_case": "Unsupported token",
+          "detailed_procedure": "1. Deploy WeirdToken with transfer() returning random values.\n2. Attempt swap involving WeirdToken.\n3. Verify router detects transfer failure.\n4. Ensure clean revert with helpful error message.",
+          "pass_fail_criteria": "Router handles non-standard tokens gracefully; fails safely without corruption."
+        },
+        {
+          "id": "AMM-R-05",
+          "test_case": "Route length limits",
+          "detailed_procedure": "1. Attempt swap with 10+ hop route exceeding gas limits.\n2. Test router's maximum path length enforcement.\n3. Compare gas usage of 2-hop vs 5-hop routes.\n4. Verify router rejects overly complex routes.\n5. Test optimal path selection with length constraints.",
+          "pass_fail_criteria": "Router enforces reasonable path length limits; gas usage scales predictably; complex routes rejected or optimized."
+        },
+        {
+          "id": "AMM-R-06",
+          "test_case": "Cross-DEX aggregation",
+          "detailed_procedure": "1. Set up identical pairs on 3 different AMM protocols.\n2. Create price discrepancies between protocols.\n3. Execute aggregated swap splitting order across DEXs.\n4. Verify optimal execution and slippage minimization.\n5. Test failure handling when one DEX transaction fails.",
+          "pass_fail_criteria": "Aggregation optimizes execution across protocols; partial failures handled gracefully; total slippage minimized."
+        }
+      ]
+    },
+    {
+      "tag": "Factory & Deployment",
+      "test_cases": [
+        {
+          "id": "AMM-DEP-01",
+          "test_case": "Duplicate-pair creation collision",
+          "detailed_procedure": "1. Attempt to create pair (TokenA, TokenB) via factory twice using identical token order.\n2. Attempt creation again with reversed order (TokenB, TokenA).\n3. Verify factory reverts with PAIR_EXISTS or returns canonical address.\n4. Fuzz CREATE2 salt to test for pair address collisions.\n5. Confirm no duplicate pools share reserves or LP token contracts.",
+          "pass_fail_criteria": "Factory must prevent duplicate pairs regardless of token order or salt manipulation; only one canonical address allowed."
+        },
+        {
+          "id": "AMM-DEP-02",
+          "test_case": "Malicious token decimals / supply mutation",
+          "detailed_procedure": "1. Deploy ERC-20 with changeable decimals() / totalSupply().\n2. Create AMM pair with this token and WETH.\n3. Post-deployment, mutate decimals from 18 → 6 and mint huge supply.\n4. Attempt swaps and liquidity additions.\n5. Monitor invariant math for overflow / price drift.",
+          "pass_fail_criteria": "Pair math must remain correct or revert when token metadata mutates; no invariant violation or price loss for LPs."
+        },
+        {
+          "id": "AMM-DEP-03",
+          "test_case": "INIT_CODE_HASH / CREATE2 collision",
+          "detailed_procedure": "1. Compute factory pair address locally with known init code hash.\n2. Deploy adversarial contract at that address via CREATE2 before factory call.\n3. Attempt factory.createPair() and observe behavior.\n4. Verify factory either reverts or uses different salt ensuring address uniqueness.\n5. Confirm no malicious contract can masquerade as legitimate pair.",
+          "pass_fail_criteria": "Factory protects against pre-image collisions; cannot be griefed into skipping pair deployment or interacting with attacker contract."
+        }
+      ]
+    },
+    {
+      "tag": "Governance & Upgrades",
+      "test_cases": [
+        {
+          "id": "AMM-GOV-01",
+          "test_case": "Timelock delay bypass attempt",
+          "detailed_procedure": "1. Queue parameter change (e.g., fee switch) through timelock with 2-day delay.\n2. Deploy attacker contract that self-destructs to re-enter execute() before delay expires via delegatecall.\n3. Attempt to execute queued action instantly.\n4. Verify timelock enforces minimum delay regardless of delegatecall context.",
+          "pass_fail_criteria": "Execution before eta must always revert; delegatecall may not bypass delay; no state mutated early."
+        },
+        {
+          "id": "AMM-GOV-02",
+          "test_case": "Proxy upgrade rollback test",
+          "detailed_procedure": "1. Deploy proxy-based router.\n2. Upgrade implementation to v2, then malicious v3 that self-destructs in constructor.\n3. Perform upgrade rollback check per EIP-1967 (UUID).\n4. Verify proxy rejects non-ERC1967 compliant upgrade.",
+          "pass_fail_criteria": "Upgrade must fail or be auto-rolled-back when new implementation breaks UUID; proxy storage remains intact."
+        },
+        {
+          "id": "AMM-GOV-03",
+          "test_case": "Fee switch front-run race",
+          "detailed_procedure": "1. Start block where governance calldata to set feeTo is broadcast but not mined.\n2. Sandwich swap in same block to accrue protocol fees.\n3. Measure whether feeTo change applies retroactively.\n4. Confirm no party can front-run to redirect fees.",
+          "pass_fail_criteria": "Protocol fees only start accruing from first block after parameter change is executed; no retroactive capture possible."
+        }
+      ]
+    },
+    {
+      "tag": "Advanced MEV / Reorg",
+      "test_cases": [
+        {
+          "id": "AMM-MEV-01",
+          "test_case": "Time-bandit reorg arbitrage",
+          "detailed_procedure": "1. Simulate chain reorg depth 6 with fork tool.\n2. In orphaned chain, execute massive swap causing 20% price move.\n3. In main chain successor, replay swap sequence capturing value diff.\n4. Measure net arbitrage profit after reorg settlement.",
+          "pass_fail_criteria": "Attacker profit bounded by normal slippage + fees; no risk-free extraction exceeding configured thresholds."
+        },
+        {
+          "id": "AMM-MEV-02",
+          "test_case": "Back-running liquidity pull",
+          "detailed_procedure": "1. Provide concentrated liquidity just ahead of large victim swap.\n2. Two blocks later, remove liquidity before TWAP update.\n3. Test external protocol using TWAP for lending collateral.\n4. Verify oracle guards or fee structure mitigate unfair gains.",
+          "pass_fail_criteria": "Back-running yields ≤ expected fee share; external protocols protected by windowed TWAP or median filters."
+        },
+        {
+          "id": "AMM-MEV-03",
+          "test_case": "Priority gas spam DOS",
+          "detailed_procedure": "1. Submit 1000 tiny swaps with max gas price to crowd mempool.\n2. In same block, victim swap sees 5x slippage due to queueing.\n3. Measure miner/validator reward vs attacker cost.\n4. Verify pool or router limit per-block swap count or gas refund mechanics.",
+          "pass_fail_criteria": "Attack either cost-prohibitive or mitigated by per-block limits; no cheap DOS achievable."
+        }
+      ]
+    },
+    {
+      "tag": "Gas-Limit Stress",
+      "test_cases": [
+        {
+          "id": "AMM-GAS-01",
+          "test_case": "V3 extreme tick crossing (>65k ticks)",
+          "detailed_procedure": "1. Provide liquidity across MIN_TICK to MAX_TICK with observationCardinalityNext = 1.\n2. Execute swap that traverses >65,000 initialized ticks.\n3. Record gas usage and success/failure.\n4. Repeat with different observation cardinalities.",
+          "pass_fail_criteria": "Swap should succeed within L1 30M gas limit; if it reverts, protocol must document safe-range limits."
+        },
+        {
+          "id": "AMM-GAS-02",
+          "test_case": "Balancer 20-token join/exit",
+          "detailed_procedure": "1. Deploy Balancer pool with 20 ERC-20 tokens each 5% weight.\n2. Perform proportional join with 1 unit of each token.\n3. Exit same proportion.\n4. Monitor gas cost and ensure < block limit.",
+          "pass_fail_criteria": "Operations remain under block gas limit; no DOS via large-token-count pools."
+        },
+        {
+          "id": "AMM-GAS-03",
+          "test_case": "Router max hop path (10+ pools)",
+          "detailed_procedure": "1. Construct path USDC→WETH→DAI→FRAX→USDT→WBTC→LDO→UNI→MKR→COMP→AAVE.\n2. Execute swapExactTokensForTokens through 10 hops.\n3. Record gas usage and output accuracy.\n4. Verify router enforces sane maxPathLength or reverts with ERROR_MAX_HOPS.",
+          "pass_fail_criteria": "Router must cap hops or succeed while staying under gas target; price output within quoted slippage."
+        }
+      ]
+    }
+  ]
+}

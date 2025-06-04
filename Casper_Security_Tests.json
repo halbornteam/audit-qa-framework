@@ -1,32 +1,32 @@
 {
-  "protocol": "Casper Security Tests",
-  "tags": [
+  "tag": "Casper",
+  "categories": [
     {
       "tag": "Contract Package Versioning",
       "test_cases": [
         {
           "id": "CSPR-CPV-01",
           "test_case": "Access URef Preservation",
-          "detailed_procedure": "Verify that the contract stores access uref under the installing account named keys when installing an upgradeable contract",
-          "pass_fail_criteria": "The contract sets the access uref parameter as Some(uref) when calling contract creation functions such as storage::new_contract"
+          "detailed_procedure": "1. Deploy contract that calls storage::new_contract().\n2. Inspect contract creation call parameters.\n3. Verify access_uref parameter = Some(uref) not None.\n4. Test with restricted vs public access patterns.\n5. Confirm only intended accounts can interact with created contract.",
+          "pass_fail_criteria": "access_uref correctly set to Some(uref); contract access properly restricted; no unauthorized interactions possible."
         },
         {
           "id": "CSPR-CPV-02",
           "test_case": "Authorized Upgrade",
-          "detailed_procedure": "Verify that the contract can only be upgraded by authorized accounts",
-          "pass_fail_criteria": "The contract can only be upgraded by authorized accounts"
+          "detailed_procedure": "1. Deploy upgradeable contract with admin = account A.\n2. Attempt upgrade from unauthorized account B.\n3. Expect revert with permission error.\n4. Execute upgrade from account A successfully.\n5. Verify new implementation active and state preserved.",
+          "pass_fail_criteria": "Unauthorized upgrade attempts blocked; authorized upgrades succeed; state preserved across upgrades."
         },
         {
           "id": "CSPR-CPV-03",
           "test_case": "Disabling Old Versions",
-          "detailed_procedure": "Verify that the contract disables old versions after a new version is installed if that's the intended behavior",
-          "pass_fail_criteria": "The contract disables old versions if needed after a new version is installed"
+          "detailed_procedure": "1. Deploy contract v1.0 and record package hash.\n2. Upgrade to v2.0 via upgrade mechanism.\n3. Attempt to call v1.0 entry points directly.\n4. Verify: v1.0 calls fail, v2.0 calls succeed.\n5. Check version tracking in contract metadata.",
+          "pass_fail_criteria": "Old version disabled post-upgrade; version metadata correctly updated; only active version callable."
         },
         {
           "id": "CSPR-CPV-04",
           "test_case": "Events initialization",
-          "detailed_procedure": "Verify that the CES events are initialized within the init function",
-          "pass_fail_criteria": "The CES events are initialized inside the init function"
+          "detailed_procedure": "1. Deploy contract with init() function.\n2. Check that init() calls casper_event_standard::init().\n3. Verify Events schema properly initialized.\n4. Attempt to emit events before and after initialization.\n5. Confirm proper event emission only after init.",
+          "pass_fail_criteria": "CES events initialized in init(); event emission works post-init; pre-init emission fails."
         }
       ]
     },
@@ -36,14 +36,14 @@
         {
           "id": "CSPR-NKUP-01",
           "test_case": "Passing URefs with appropriate access rights",
-          "detailed_procedure": "When passing a URef to another entity in any way, ensure that the URef is passed with the appropriate access rights",
-          "pass_fail_criteria": "The URef is passed with the appropriate access rights"
+          "detailed_procedure": "1. Create URef with READ+WRITE access.\n2. Pass to external contract with only READ access needed.\n3. Downgrade URef permissions before passing: uref.remove_access_rights(AccessRights::WRITE).\n4. Verify receiving contract cannot write to URef.\n5. Test with different permission combinations.",
+          "pass_fail_criteria": "URefs passed with minimal required permissions; excess permissions removed; privilege escalation impossible."
         },
         {
           "id": "CSPR-NKUP-02",
           "test_case": "URef leak prevention",
-          "detailed_procedure": "Test that URefs are not accidentally returned or exposed in event data",
-          "pass_fail_criteria": "URefs are not accidentally returned or exposed in event data"
+          "detailed_procedure": "1. Create sensitive URef for internal contract state.\n2. Emit events containing various data types.\n3. Inspect event data for accidentally included URefs.\n4. Test return values from entry points.\n5. Verify no URefs leaked in public interfaces.",
+          "pass_fail_criteria": "No URefs in event data; no URefs in return values; sensitive state references remain private."
         }
       ]
     },

@@ -1,0 +1,274 @@
+{
+  "tag": "Solidity",
+  "categories": [
+    {
+      "tag": "Arithmetic & Casting",
+      "test_cases": [
+        {
+          "id": "SOL-ARITH-01",
+          "test_case": "Unchecked arithmetic overflow/underflow",
+          "detailed_procedure": "Deploy contract compiled with Solidity >=0.8.0. Call add(uint256,uint256) with (2**256-1,1). Expect revert on overflow. Repeat with custom unchecked block and ensure code uses SafeCast/SafeMath where gas-critical.",
+          "pass_fail_criteria": "Arithmetic in critical paths reverts on overflow unless explicitly *and safely* unchecked; no wraparound observed in state."
+        },
+        {
+          "id": "SOL-ARITH-02",
+          "test_case": "Down-cast truncation (uint256→uint128)",
+          "detailed_procedure": "Pass value >2**128-1 to function that casts to uint128. Monitor for wrap or custom reverts using OpenZeppelin SafeCast. Fuzz across high range.",
+          "pass_fail_criteria": "Call reverts with custom error (e.g., SafeCastOverflow) or returns false; truncated value must never persist."
+        },
+        {
+          "id": "SOL-ARITH-03",
+          "test_case": "Division precision loss",
+          "detailed_procedure": "Calculate (a*b)/c scenario where a*b overflows 256-bit unless using full-precision (e.g., mulDiv). Supply max values to produce incorrect rounding.",
+          "pass_fail_criteria": "mulDiv / PRBMath used; result matches expected high-precision math to within 1 wei; no overflow revert."
+        }
+      ]
+    },
+    {
+      "tag": "Access Control & Authorization",
+      "test_cases": [
+        {
+          "id": "SOL-ACCESS-01",
+          "test_case": "Only-owner functions",
+          "detailed_procedure": "Call owner-restricted function from EOA != owner. Expect revert Ownable:caller_is_not_the_owner. Test after transferring ownership.",
+          "pass_fail_criteria": "Non-owners always revert; new owner gains rights immediately after transferOwnership()."
+        },
+        {
+          "id": "SOL-ACCESS-02",
+          "test_case": "Role-based access (RBAC)",
+          "detailed_procedure": "Grant MINTER_ROLE to addrA. addrB attempts mint(). Expect revert. Revoke role and ensure addrA now reverts too.",
+          "pass_fail_criteria": "AccessControl enforces roles; events emitted for grant/revoke; enumeration correct."
+        },
+        {
+          "id": "SOL-ACCESS-03",
+          "test_case": "tx.origin misuse",
+          "detailed_procedure": "Deploy contract that guards admin with tx.origin == owner. Call via intermediate contract; verify bypass succeeds. Contract under test should use msg.sender.",
+          "pass_fail_criteria": "No privilege escalation via tx.origin; functions rely on msg.sender only."
+        }
+      ]
+    },
+    {
+      "tag": "Reentrancy & CEI",
+      "test_cases": [
+        {
+          "id": "SOL-REENT-01",
+          "test_case": "Reentrancy on withdraw pattern",
+          "detailed_procedure": "Deploy vulnerable vault; attacker contract calls withdraw() in fallback to reenter. Observe double withdrawal unless reentrancyGuard or CEI present.",
+          "pass_fail_criteria": "Reentrancy drained amount == 0; withdraw reverts on reentry or updates state before transfer."
+        },
+        {
+          "id": "SOL-REENT-02",
+          "test_case": "cross-function reentrancy",
+          "detailed_procedure": "Call donate() then in fallback call claimReward() in same tx. Assess whether combined call breaks invariant.",
+          "pass_fail_criteria": "Cross-function paths protected; balance invariant holds."
+        },
+        {
+          "id": "SOL-REENT-03",
+          "test_case": "Reentrancy through ERC777 hooks",
+          "detailed_procedure": "Send ERC777 tokens with malicious tokensReceived() to target contract. Verify state consistency.",
+          "pass_fail_criteria": "Contract uses reentrancyGuard or other pattern; no state corruption."
+        }
+      ]
+    },
+    {
+      "tag": "Timestamp & Block Properties",
+      "test_cases": [
+        {
+          "id": "SOL-TIME-01",
+          "test_case": "block.timestamp manipulable window",
+          "detailed_procedure": "Set saleEnds = block.timestamp + 1 hour. Miner can extend by 13s. Warp and ensure edge cases don't allow free mint after deadline.",
+          "pass_fail_criteria": "Grace windows accounted or deadline uses block.number; no profit with minor drift."
+        },
+        {
+          "id": "SOL-TIME-02",
+          "test_case": "block.number dependency",
+          "detailed_procedure": "Function calculates reward = base * currentBlock. Fork mainnet, advance >2**64 blocks by vm.roll. Check overflow/underflow.",
+          "pass_fail_criteria": "Big-block scenarios handled; safe type or bounded formula."
+        }
+      ]
+    },
+    {
+      "tag": "Gas & DoS",
+      "test_cases": [
+        {
+          "id": "SOL-GAS-01",
+          "test_case": "Unbounded loop over array",
+          "detailed_procedure": "Add 10k addresses to whitelist array. Call removeExpired(); measure gas; if usage exceeds block gas limit expect revert or ensure function processes via cursor pattern.",
+          "pass_fail_criteria": "Loops are chunked or use mapping; call succeeds within <50% of block gas."
+        },
+        {
+          "id": "SOL-GAS-02",
+          "test_case": "Denial-of-service via self-destruct refund",
+          "detailed_procedure": "Create zombie contracts to reduce gas cost of attack; send many tx to drain.",
+          "pass_fail_criteria": "Economic incentive unchanged; functions unaffected by refund logic changes after EIP-3529."
+        }
+      ]
+    },
+    {
+      "tag": "Proxy & Upgradeability",
+      "test_cases": [
+        {
+          "id": "SOL-UPGR-01",
+          "test_case": "Storage collision",
+          "detailed_procedure": "Deploy TransparentProxy with ImplV1 (uint256 value at slot0). Upgrade to ImplV2 introducing bool at slot0. Read value.",
+          "pass_fail_criteria": "Upgrade scripts include storage gap; value preserved; bool default false."
+        },
+        {
+          "id": "SOL-UPGR-02",
+          "test_case": "Admin slot clobber",
+          "detailed_procedure": "Write to EIP-1967 ADMIN_SLOT via impl bug. Attempt self-upgrade.",
+          "pass_fail_criteria": "Proxy prevents implementation from altering admin slot; call reverts."
+        },
+        {
+          "id": "SOL-UPGR-03",
+          "test_case": "UUPS upgrade authorization",
+          "detailed_procedure": "Call upgradeTo() from non-admin. Expect AccessControl.",
+          "pass_fail_criteria": "Only UpgradeRole or owner allowed; unauthorized tx reverts."
+        }
+      ]
+    },
+    {
+      "tag": "Signature & Permit",
+      "test_cases": [
+        {
+          "id": "SOL-SIG-01",
+          "test_case": "EIP-2612 permit replay",
+          "detailed_procedure": "Sign permit, use once, then reuse. Should fail due to nonce increment.",
+          "pass_fail_criteria": "Second call reverts with InvalidSignature or expired nonce."
+        },
+        {
+          "id": "SOL-SIG-02",
+          "test_case": "Signature malleability (s-high, v 27/28)",
+          "detailed_procedure": "Submit permit with s>secp256k1n/2.",
+          "pass_fail_criteria": "Contract enforces EIP-2 lower-s, rejects malleable sig."
+        }
+      ]
+    },
+    {
+      "tag": "Flash Loan & Atomicity",
+      "test_cases": [
+        {
+          "id": "SOL-FL-01",
+          "test_case": "Flash-loaned reentrancy price manipulation",
+          "detailed_procedure": "Obtain flash loan, skew AMM price, collateralize, repurchase all in same tx.",
+          "pass_fail_criteria": "Oracle uses TWAP or price is snapshot pre-loan; manipulation unprofitable or reverts."
+        },
+        {
+          "id": "SOL-FL-02",
+          "test_case": "Atomic loan fee enforcement",
+          "detailed_procedure": "Take flash loan of max tokens; repay less than amount+fee. Expect revert.",
+          "pass_fail_criteria": "Loan cannot be under-repaid; tx reverts."
+        }
+      ]
+    },
+    {
+      "tag": "Oracle & External Data",
+      "test_cases": [
+        {
+          "id": "SOL-ORCL-01",
+          "test_case": "Stale price guard",
+          "detailed_procedure": "Manipulate oracle timestamp older than HEARTBEAT. Call trade().",
+          "pass_fail_criteria": "Function reverts with StaleOracle."
+        },
+        {
+          "id": "SOL-ORCL-02",
+          "test_case": "Aggregator round skipping",
+          "detailed_procedure": "Supply roundId+2 data before roundId+1. Observe if contract trusts out-of-order update.",
+          "pass_fail_criteria": "Contract validates round sequence; skips ignored."
+        }
+      ]
+    },
+    {
+      "tag": "Delegatecall & Context Confusion",
+      "test_cases": [
+        {
+          "id": "SOL-DEL-01",
+          "test_case": "Delegatecall clobbers msg.sender",
+          "detailed_procedure": "Deploy Library (logic) and Proxy without access-control. Call proxy.function() from attacker, which delegatecalls library that uses msg.sender for auth. Expect privilege escalation if not using _msgSender().",
+          "pass_fail_criteria": "Library functions must read admin from storage via AccessControl or use msg.sender == tx.origin guard removed; attacker cannot gain elevated rights."
+        },
+        {
+          "id": "SOL-DEL-02",
+          "test_case": "Storage slot collision via delegatecall",
+          "detailed_procedure": "Library writes to slot 0 (uint256) while proxy slot 0 holds owner. After delegatecall, owner overwritten. Trigger withdraw().",
+          "pass_fail_criteria": "Proxy pattern reserves storage gap; library cannot override critical slots."
+        },
+        {
+          "id": "SOL-DEL-03",
+          "test_case": "call vs delegatecall mix-up",
+          "detailed_procedure": "Function uses low_level.call to external library expecting state change but actually runs in different context, leading to missing storage write. Inspect state after tx.",
+          "pass_fail_criteria": "State must update; code uses delegatecall when writing proxy storage, call only for pure/external funcs."
+        }
+      ]
+    },
+    {
+      "tag": "Inline Assembly & Memory Safety",
+      "test_cases": [
+        {
+          "id": "SOL-ASM-01",
+          "test_case": "Dirty calldatacopy out-of-bounds",
+          "detailed_procedure": "Write assembly calldatacopy(dest, 0x40, calldatasize()) where dest = 0x00. Deploy on Foundry/MVM with cheat vm.expectRevert if memory overwritten.",
+          "pass_fail_criteria": "Assembly must respect free memory pointer (0x40); out-of-bounds copy never corrupts memory leading to wrong returndata."
+        },
+        {
+          "id": "SOL-ASM-02",
+          "test_case": "Returndatacopy length mismatch",
+          "detailed_procedure": "Low-level call returns 32-byte data but code copies size 0x100. Expect out-of-bounds revert in 0.8.0.",
+          "pass_fail_criteria": "Contracts check returndatasize before copying; no memory corruption."
+        },
+        {
+          "id": "SOL-ASM-03",
+          "test_case": "Invalid opcode insertion",
+          "detailed_procedure": "Assembly block uses 0xfe to cause testnet/crash. Ensure proper error bubble.",
+          "pass_fail_criteria": "Invalid opcode reverts gracefully; system not bricked; tests catch misuse."
+        }
+      ]
+    },
+    {
+      "tag": "Selfdestruct & CREATE2",
+      "test_cases": [
+        {
+          "id": "SOL-SD-01",
+          "test_case": "Reinitialisation via selfdestruct & recreate",
+          "detailed_procedure": "Deploy contract at addr A via CREATE2, destroy with selfdestruct, redeploy different bytecode to same address, call victim contract that stored addr A as trusted. Observe exploit.",
+          "pass_fail_criteria": "Trusted addresses either immutable codehash check or cannot be self-destructed; recreate attack fails."
+        },
+        {
+          "id": "SOL-SD-02",
+          "test_case": "Ether griefing via selfdestruct",
+          "detailed_procedure": "Force-send 1 wei by selfdestructing helper. Call withdraw() requiring exact zero balance.",
+          "pass_fail_criteria": "Contracts use address(this).balance instead of ==0 checks or include pull model; forced ether does not break logic."
+        },
+        {
+          "id": "SOL-SD-03",
+          "test_case": "CREATE2 address pre-image collision",
+          "detailed_procedure": "Compute salt to deploy counterfeit token at anticipated address before legitimate sale. Verify registry lists address codehash before interacting.",
+          "pass_fail_criteria": "System validates codehash or deployer before trusting CREATE2 address; collision not exploitable."
+        }
+      ]
+    },
+    {
+      "tag": "ABI Encoding & Packed Arrays",
+      "test_cases": [
+        {
+          "id": "SOL-ABI-01",
+          "test_case": "Calldata array length mismatch",
+          "detailed_procedure": "Craft calldata with length=1 but supply 3 elements payload. Low-level call; expect abi decoding revert.",
+          "pass_fail_criteria": "decode reverting or assembly length check; no silent overflow reading."
+        },
+        {
+          "id": "SOL-ABI-02",
+          "test_case": "Struct packing and storage collision",
+          "detailed_procedure": "Define struct {uint128 a; uint128 b; bool c}. Write with assembly to slot mixing bool flags causing overlap. Fuzz writes.",
+          "pass_fail_criteria": "Storage layout matches compiler spec; bool packed after 248 bits; no overwrite."
+        },
+        {
+          "id": "SOL-ABI-03",
+          "test_case": "Abi.encodePacked collision in hash",
+          "detailed_procedure": "Sign message keccak256(abi.encodePacked(user,amount)). Provide crafted (user',amount') giving same hash due to padding. Demonstrate transfer() duplication.",
+          "pass_fail_criteria": "Hashes must include length or use abi.encode; encodePacked only for fixed-width types or followed by separator."
+        }
+      ]
+    }
+  ]
+} 

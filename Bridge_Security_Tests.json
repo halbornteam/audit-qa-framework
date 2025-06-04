@@ -1,26 +1,26 @@
 {
-  "protocol": "Bridge Security Tests",
-  "tags": [
+  "tag": "Bridge",
+  "categories": [
     {
       "tag": "Lock and Mint Mechanism",
       "test_cases": [
         {
           "id": "BRIDGE-LM-01",
           "test_case": "Minting accuracy",
-          "detailed_procedure": "- Initiate a lock transaction on Chain A with a specific amount.\n- Observe the minting transaction on Chain B.\n- Verify that the minted amount of wrapped assets on Chain B equals the deposited amount on Chain A minus the predefined bridge fees.",
-          "pass_fail_criteria": "Minted amount on Chain B = Deposited amount on Chain A - Fees (within 1 wei or smallest asset unit)."
+          "detailed_procedure": "1. Lock 1000 USDC on Chain A via lockTokens(1000e6).\n2. Wait for relayer to process and submit proof to Chain B.\n3. Call mintWrapped() on Chain B with lock proof.\n4. Query wrappedUSDC.balanceOf(recipient) on Chain B.\n5. Verify: balance_B = 1000e6 - bridgeFee (e.g., 1e6 for 0.1% fee).\n6. Repeat with edge amounts (1 wei, MAX_LOCK_AMOUNT).",
+          "pass_fail_criteria": "Minted amount = locked amount - fees ±1 wei; edge cases handled; events emitted correctly."
         },
         {
           "id": "BRIDGE-LM-02",
           "test_case": "Unlocking accuracy",
-          "detailed_procedure": "- Initiate a burn transaction of wrapped assets on Chain B.\n- Observe the unlocking transaction on Chain A.\n- Verify that the unlocked amount on Chain A equals the burned amount on Chain B minus the predefined bridge fees.",
-          "pass_fail_criteria": "Unlocked amount on Chain A = Burned amount on Chain B - Fees (within 1 wei or smallest asset unit)."
+          "detailed_procedure": "1. Burn 500 wrappedUSDC on Chain B via burnTokens(500e6).\n2. Generate withdrawal proof and submit to Chain A.\n3. Call unlockTokens() on Chain A with burn proof.\n4. Verify user receives 500e6 - withdrawalFee USDC.\n5. Check escrow balance decreased by exact amount.",
+          "pass_fail_criteria": "Unlocked = burned - withdrawal_fee ±1 wei; escrow accounting correct."
         },
         {
           "id": "BRIDGE-LM-03",
           "test_case": "Invariant check (total lock vs. minted)",
-          "detailed_procedure": "- After a series of lock and unlock operations, query the total assets locked on Chain A.\n- Query the total supply of wrapped assets minted on Chain B.\n- Query the total fees collected by the bridge protocol.",
-          "pass_fail_criteria": "Total locked assets on Chain A = Total minted wrapped assets on Chain B + Total collected fees. Invariant must hold."
+          "detailed_procedure": "1. Perform 100 random lock/unlock operations across chains.\n2. Query Chain A: totalLocked = escrow.balance + processedWithdrawals.\n3. Query Chain B: totalMinted = wrappedToken.totalSupply().\n4. Query fees: feesCollected = bridgeFeeVault.balance.\n5. Assert: totalLocked = totalMinted + feesCollected.",
+          "pass_fail_criteria": "Invariant holds exactly across all operations; no leakage or inflation."
         },
         {
           "id": "BRIDGE-LM-04",
@@ -66,14 +66,14 @@
         {
           "id": "BRIDGE-CRH-01",
           "test_case": "Source chain rollback impact",
-          "detailed_procedure": "- Send a lock message from Chain A to Chain B.\n- Before the message is confirmed and assets are minted on Chain B, simulate a rollback of Chain A to a state before the lock transaction was sent.\n- Observe if assets are still minted on Chain B despite the originating transaction being reverted on Chain A.",
-          "pass_fail_criteria": "Assets are not minted on Chain B if the corresponding lock transaction on Chain A is rolled back. If minted, a mechanism must exist to reconcile/burn the erroneously minted assets or prevent their use."
+          "detailed_procedure": "1. Lock 100 USDC on Chain A at block N.\n2. Relayer detects event but waits for confirmations.\n3. Simulate Chain A rollback to block N-10 (lock tx disappears).\n4. Observe: relayer should NOT submit proof to Chain B.\n5. If proof was submitted, verify challenge mechanism burns minted tokens.\n6. Test with different confirmation depths (6, 12, 64 blocks).",
+          "pass_fail_criteria": "No minting occurs after rollback; or challenge system claws back erroneously minted tokens."
         },
         {
           "id": "BRIDGE-CRH-02",
           "test_case": "Destination chain rollback impact",
-          "detailed_procedure": "- Send a lock message from Chain A, which is successfully relayed and assets are minted on Chain B.\n- Simulate a rollback of Chain B to a state before the minting transaction occurred.\n- Verify the state of assets on Chain A (should remain locked) and attempt to recover/re-mint assets on Chain B or unlock on Chain A.",
-          "pass_fail_criteria": "Assets remain locked on Chain A. A clear mechanism must exist to either re-process the minting on Chain B after its reorganisation or allow the user to reclaim assets on Chain A if minting becomes impossible. Assets should not be permanently lost or unrecoverable."
+          "detailed_procedure": "1. Successfully mint 100 wrappedUSDC on Chain B from Chain A lock.\n2. Simulate Chain B rollback erasing mint transaction.\n3. Verify: assets remain locked on Chain A (no unlock occurred).\n4. Re-submit original lock proof to Chain B after rollback.\n5. Verify: minting succeeds again OR user can emergency-unlock on Chain A.",
+          "pass_fail_criteria": "No permanent asset loss; re-processing works or emergency exit available."
         }
       ]
     },
@@ -94,20 +94,20 @@
         {
           "id": "BRIDGE-PI-01",
           "test_case": "Forged proof submission",
-          "detailed_procedure": "- Craft a relay message for Chain B (e.g., for minting wrapped assets) with an invalid proof.\n    - Scenario 1: Modify the signature of a valid proof.\n    - Scenario 2: Keep the signature valid but modify the payload (e.g., amount, recipient) of the message.\n- Submit this forged message to the bridge contract on Chain B.",
-          "pass_fail_criteria": "The bridge contract on Chain B rejects the message with the forged/tampered proof. No state change (e.g., minting) occurs."
+          "detailed_procedure": "Scenario A - Invalid signature:\n  1. Generate valid lock proof with signature.\n  2. Modify signature bytes randomly.\n  3. Submit to Chain B mint function.\n  4. Expect revert INVALID_SIGNATURE.\nScenario B - Tampered payload:\n  1. Valid proof for 100 USDC lock.\n  2. Modify amount to 1000 USDC in payload.\n  3. Keep original signature.\n  4. Submit to Chain B.\n  5. Expect revert SIGNATURE_MISMATCH.",
+          "pass_fail_criteria": "All forged proofs rejected; no state changes occur; specific error messages returned."
         },
         {
           "id": "BRIDGE-PI-02",
           "test_case": "Proof replay attack (double spend/mint)",
-          "detailed_procedure": "- Successfully complete a lock-and-mint operation, obtaining a valid proof for minting on Chain B.\n- After the wrapped assets are minted, attempt to submit the exact same valid proof to the bridge contract on Chain B again.",
-          "pass_fail_criteria": "The second submission of the same proof is rejected. The system must prevent replay of proofs to avoid double minting or double withdrawal."
+          "detailed_procedure": "1. Lock 50 USDC on Chain A, get proof P1.\n2. Submit P1 to Chain B, successfully mint 50 wrappedUSDC.\n3. Attempt to submit P1 again to mint another 50.\n4. Verify: second submission reverts PROOF_ALREADY_USED.\n5. Check nonce/hash tracking prevents replay.",
+          "pass_fail_criteria": "Proof replay blocked; nonce/hash tracking prevents double-spend."
         },
         {
           "id": "BRIDGE-PI-03",
           "test_case": "Nonce manipulation",
-          "detailed_procedure": "- If the bridge protocol uses nonces for message ordering or replay protection:\n    - Scenario 1: Attempt to relay a message with a nonce lower than the expected nonce.\n    - Scenario 2: Attempt to relay a message with a nonce significantly higher than the expected nonce (skipping nonces).\n- Observe the behavior of the bridge contract.",
-          "pass_fail_criteria": "Messages with incorrect nonces (too low or out of sequence, depending on implementation) are rejected. Nonce system functions as expected to maintain order and prevent replay."
+          "detailed_procedure": "Scenario A - Old nonce:\n  1. Current expected nonce = 42.\n  2. Submit proof with nonce = 35.\n  3. Expect revert NONCE_TOO_LOW.\nScenario B - Gap nonce:\n  1. Submit proof with nonce = 50 (gap of 8).\n  2. Check if bridge accepts out-of-order or requires sequential.\n  3. Verify gap handling per protocol design.",
+          "pass_fail_criteria": "Nonce validation prevents old/invalid sequences; gap handling matches specification."
         },
         {
           "id": "BRIDGE-PI-04",

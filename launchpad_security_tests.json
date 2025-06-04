@@ -1,13 +1,13 @@
 {
-  "protocol": "Launchpad and Token Sale",
-  "tags": [
+  "tag": "Launchpad",
+  "categories": [
     {
       "tag": "Fair Launch",
       "test_cases": [
         {
           "id": "LP-FL-01",
           "test_case": "No pre-mint or pre-allocation",
-          "detailed_procedure": "Inspect the token contract’s initial supply and allocation before the sale.",
+          "detailed_procedure": "Inspect the token contract's initial supply and allocation before the sale.",
           "pass_fail_criteria": "Pass if no tokens are minted or allocated; fail otherwise."
         },
         {
@@ -778,6 +778,23 @@
           "test_case": "No self-destruct vulnerabilities",
           "detailed_procedure": "Ensure the contract cannot be destroyed by unauthorized accounts.",
           "pass_fail_criteria": "Pass if self-destruct is restricted; fail otherwise."
+        }
+      ]
+    },
+    {
+      "tag": "Presale Management",
+      "test_cases": [
+        {
+          "id": "LP-PM-01",
+          "test_case": "Whitelist validation",
+          "detailed_procedure": "1. Deploy presale with merkle root whitelist.\n2. Generate merkle proof for whitelisted address A.\n3. Address A successfully purchases with valid proof.\n4. Address B attempts purchase with invalid/no proof.\n5. Expect revert INVALID_PROOF or NOT_WHITELISTED.\n6. Test proof replay attacks and signature validation.",
+          "pass_fail_criteria": "Valid proofs allow purchase; invalid proofs blocked; replay attacks prevented."
+        },
+        {
+          "id": "LP-PM-02",
+          "test_case": "Contribution limits enforcement",
+          "detailed_procedure": "1. Set min contribution = 0.1 ETH, max = 2 ETH per address.\n2. Attempt purchase with 0.05 ETH - expect revert BELOW_MINIMUM.\n3. Purchase 1 ETH successfully.\n4. Attempt additional 1.5 ETH purchase - expect revert EXCEEDS_LIMIT.\n5. Test via multiple transactions and proxy contracts.\n6. Verify cumulative tracking across purchase rounds.",
+          "pass_fail_criteria": "Min/max limits enforced; cumulative tracking prevents circumvention; proxy detection works."
         }
       ]
     }

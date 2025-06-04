@@ -1,6 +1,6 @@
 {
-  "protocol": "Rust Layer Generic Security Tests",
-  "tags": [
+  "tag": "Rust",
+  "categories": [
     {
       "tag": "Rust language generic test cases",
       "test_cases": [
